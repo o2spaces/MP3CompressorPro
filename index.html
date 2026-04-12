@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MP3 Compressor Pro</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,system-ui,sans-serif);background:var(--color-background-tertiary,#f5f5f7)}
+.wrap{padding:1.5rem 1rem;max-width:720px;margin:auto}
+h1{font-size:22px;font-weight:500;color:var(--color-text-primary,#1a1a1a);margin-bottom:4px}
+.sub{font-size:14px;color:var(--color-text-secondary,#666);margin-bottom:1.25rem}
+
+/* Main tabs */
+.main-tabs{display:flex;gap:6px;margin-bottom:1.25rem;border-bottom:1.5px solid var(--color-border-tertiary,#e5e5e5);padding-bottom:0}
+.main-tab{padding:8px 20px;border:none;background:transparent;font-size:14px;font-weight:500;color:var(--color-text-secondary,#666);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;transition:all .15s;border-radius:0}
+.main-tab.active{color:#7F77DD;border-bottom-color:#7F77DD}
+.main-tab:hover:not(.active){color:var(--color-text-primary,#1a1a1a)}
+.main-panel{display:none}.main-panel.active{display:block}
+
+.card{background:var(--color-background-primary,#fff);border:0.5px solid var(--color-border-tertiary,#e5e5e5);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.lbl{font-size:13px;font-weight:500;color:var(--color-text-secondary,#888);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.75rem}
+.sublbl{font-size:13px;color:var(--color-text-secondary,#666);margin-bottom:8px}
+.dropzone{border:1.5px dashed var(--color-border-secondary,#ccc);border-radius:10px;padding:2rem 1rem;text-align:center;cursor:pointer;transition:background .15s}
+.dropzone:hover,.dropzone.over{background:var(--color-background-secondary,#f5f5f5)}
+.dropzone .mt{font-size:15px;font-weight:500;color:var(--color-text-primary,#1a1a1a);margin-bottom:6px}
+.dropzone .ms{font-size:13px;color:var(--color-text-tertiary,#999)}
+.tab{padding:8px 18px;border-radius:8px;border:0.5px solid var(--color-border-secondary,#ccc);font-size:14px;font-weight:500;cursor:pointer;background:transparent;color:var(--color-text-secondary,#666);transition:all .15s}
+.tab.active{background:#7F77DD;border-color:#7F77DD;color:#fff}
+.tab:hover:not(.active){background:var(--color-background-secondary,#f5f5f5)}
+.ifield{padding:9px 12px;border:0.5px solid var(--color-border-secondary,#ccc);border-radius:8px;font-size:15px;font-weight:500;color:var(--color-text-primary,#1a1a1a);background:var(--color-background-secondary,#f5f5f5)}
+.isel{padding:9px 28px 9px 12px;border:0.5px solid var(--color-border-secondary,#ccc);border-radius:8px;font-size:14px;color:var(--color-text-primary,#1a1a1a);background:var(--color-background-secondary,#f5f5f5);appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.sful{width:100%;padding:9px 32px 9px 12px;border:0.5px solid var(--color-border-secondary,#ccc);border-radius:8px;font-size:14px;color:var(--color-text-primary,#1a1a1a);background:var(--color-background-secondary,#f5f5f5);appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.atag{font-size:12px;color:#7F77DD;background:#EEEDFE;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.hint{background:var(--color-background-secondary,#f5f5f5);border:0.5px solid var(--color-border-tertiary,#e5e5e5);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--color-text-secondary,#666);display:flex;align-items:flex-start;gap:8px;margin-top:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1.25rem}
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.sc{background:var(--color-background-secondary,#f5f5f5);border-radius:8px;padding:1rem;text-align:center}
+.sc .sl{font-size:12px;color:var(--color-text-secondary,#888);margin-bottom:8px;font-weight:500}
+.sc .sv{font-size:18px;font-weight:500;color:var(--color-text-primary,#1a1a1a)}
+.sc .sv.p{color:#7F77DD}
+.cta{width:100%;padding:14px;border-radius:12px;background:#7F77DD;border:none;color:#fff;font-size:15px;font-weight:500;cursor:pointer;transition:opacity .15s;margin-top:4px}
+.cta:hover{opacity:.88}
+.cta:active{opacity:.75}
+.cta:disabled{opacity:.45;cursor:not-allowed}
+.cta-outline{width:100%;padding:10px;border-radius:8px;background:transparent;border:1.5px solid #E24B4A;color:#E24B4A;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;margin-top:6px}
+.cta-outline:hover{background:#fff5f5}
+.fnote{font-size:12px;color:var(--color-text-tertiary,#999);text-align:center;margin-top:.75rem;line-height:1.6}
+.fnote b{color:var(--color-text-secondary,#666);font-weight:500}
+.divider{height:0.5px;background:var(--color-border-tertiary,#e5e5e5);margin:1rem 0}
+.flist{margin-top:.75rem;display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;padding-right:4px}
+.flist::-webkit-scrollbar{width:5px}.flist::-webkit-scrollbar-track{background:transparent}.flist::-webkit-scrollbar-thumb{background:var(--color-border-secondary,#ccc);border-radius:3px}.flist::-webkit-scrollbar-thumb:hover{background:#aaa}
+.rn-flist{margin-top:.75rem;display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;padding-right:4px}
+.rn-flist::-webkit-scrollbar{width:5px}.rn-flist::-webkit-scrollbar-track{background:transparent}.rn-flist::-webkit-scrollbar-thumb{background:var(--color-border-secondary,#ccc);border-radius:3px}.rn-flist::-webkit-scrollbar-thumb:hover{background:#aaa}
+.fitem{display:flex;align-items:center;gap:10px;background:var(--color-background-secondary,#f5f5f5);border-radius:8px;padding:8px 12px;font-size:13px}
+.fname{flex:1;color:var(--color-text-primary,#1a1a1a);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsize{color:var(--color-text-secondary,#888);white-space:nowrap}
+.fdel{background:none;border:none;cursor:pointer;color:var(--color-text-tertiary,#bbb);font-size:16px;padding:0 4px;line-height:1}
+.fdel:hover{color:#E24B4A}
+.pbar-wrap{background:var(--color-border-tertiary,#e5e5e5);border-radius:4px;height:4px;margin-top:6px;overflow:hidden}
+.pbar{height:4px;background:#7F77DD;border-radius:4px;width:0;transition:width .2s}
+.pbar.done{background:#1D9E75}
+.pbar.err{background:#E24B4A}
+.seq-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:1rem}
+.seq-ex{font-size:12px;color:var(--color-text-tertiary,#999);margin-top:8px}
+.seq-ex span{color:#7F77DD;font-weight:500}
+
+/* Checkbox toggle */
+.chk-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.chk-row input[type=checkbox]{width:16px;height:16px;accent-color:#7F77DD;cursor:pointer}
+.chk-row label{font-size:13px;color:var(--color-text-secondary,#666);cursor:pointer}
+
+/* Rename tab */
+.rn-drop{border:1.5px dashed var(--color-border-secondary,#ccc);border-radius:10px;padding:1.5rem 1rem;text-align:center;cursor:pointer;transition:background .15s}
+.rn-drop:hover,.rn-drop.over{background:var(--color-background-secondary,#f5f5f5)}
+.rn-drop .mt{font-size:15px;font-weight:500;color:var(--color-text-primary,#1a1a1a);margin-bottom:6px}
+.rn-drop .ms{font-size:13px;color:var(--color-text-tertiary,#999)}
+
+.preview-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:.5rem}
+.preview-table th{text-align:left;padding:6px 10px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-secondary,#888);background:var(--color-background-secondary,#f5f5f5);border-bottom:1px solid var(--color-border-tertiary,#e5e5e5)}
+.preview-table td{padding:7px 10px;border-bottom:0.5px solid var(--color-border-tertiary,#e5e5e5);color:var(--color-text-primary,#1a1a1a);vertical-align:middle}
+.preview-table tr:last-child td{border-bottom:none}
+.preview-table .old-name{color:var(--color-text-secondary,#888);text-decoration:line-through}
+.preview-table .new-name{color:#1D9E75;font-weight:500}
+.preview-table .no-change{color:var(--color-text-tertiary,#aaa);font-style:italic}
+.badge-new{font-size:10px;background:#E6F7F2;color:#1D9E75;border-radius:4px;padding:2px 6px;font-weight:600;margin-left:6px}
+.badge-skip{font-size:10px;background:#f5f5f5;color:#aaa;border-radius:4px;padding:2px 6px;font-weight:500;margin-left:6px}
+
+.move-btn{background:var(--color-background-secondary,#f5f5f5);border:0.5px solid var(--color-border-secondary,#ccc);border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;color:var(--color-text-primary,#1a1a1a);transition:background .1s}
+.move-btn:hover{background:var(--color-border-tertiary,#e5e5e5)}
+.move-btn:disabled{opacity:.35;cursor:not-allowed}
+
+.rn-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:1rem}
+.rn-cta{padding:10px 20px;border-radius:8px;background:#7F77DD;border:none;color:#fff;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.rn-cta:hover{opacity:.88}
+.rn-cta:disabled{opacity:.45;cursor:not-allowed}
+.empty-state{text-align:center;padding:2rem;color:var(--color-text-tertiary,#aaa);font-size:14px}
+
+.drag-handle{cursor:grab;color:var(--color-text-tertiary,#ccc);user-select:none;font-size:16px;padding:0 4px}
+.drag-handle:active{cursor:grabbing}
+.dragging{opacity:.5}
+.drag-over{border-top:2px solid #7F77DD}
+
+.stats-bar{background:#EEEDFE;border-radius:8px;padding:8px 14px;font-size:13px;color:#5B53C4;margin-top:.5rem;display:flex;gap:16px}
+.stats-bar span{font-weight:600;color:#7F77DD}
+
+/* Compress rename preview */
+.cmp-preview-card{background:var(--color-background-primary,#fff);border:0.5px solid var(--color-border-tertiary,#e5e5e5);border-radius:12px;padding:1.25rem;margin-bottom:1rem;display:none}
+
+/* Audio Processing */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+.toggle-row+.toggle-row{border-top:0.5px solid var(--color-border-tertiary,#e5e5e5)}
+.toggle-label{display:flex;flex-direction:column;gap:2px}
+.toggle-label span{font-size:14px;font-weight:500;color:var(--color-text-primary,#1a1a1a)}
+.toggle-label small{font-size:12px;color:var(--color-text-tertiary,#999)}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--color-border-secondary,#ccc);border-radius:24px;cursor:pointer;transition:background .2s}
+.toggle-switch input:checked+.toggle-track{background:#7F77DD}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch input:checked~.toggle-thumb{transform:translateX(20px)}
+.gain-slider-wrap{margin-top:10px;display:none}
+.gain-slider-wrap.visible{display:block}
+.gain-row{display:flex;align-items:center;gap:12px;margin-top:6px}
+.gain-val{font-size:14px;font-weight:600;color:#7F77DD;min-width:54px;text-align:right}
+input[type=range].gslider{flex:1;-webkit-appearance:none;appearance:none;height:5px;border-radius:4px;background:linear-gradient(to right,#7F77DD var(--val,50%),var(--color-border-secondary,#ccc) var(--val,50%));outline:none;cursor:pointer}
+input[type=range].gslider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#7F77DD;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+input[type=range].gslider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#7F77DD;border:none;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.loud-meter{margin-top:10px;background:var(--color-background-secondary,#f5f5f5);border-radius:10px;padding:12px 14px}
+.loud-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.loud-cell{text-align:center}
+.loud-cell .lc-val{font-size:17px;font-weight:600;color:var(--color-text-primary,#1a1a1a)}
+.loud-cell .lc-lbl{font-size:11px;color:var(--color-text-tertiary,#aaa);margin-top:2px}
+.loud-cell .lc-val.warn{color:#E8A020}
+.loud-cell .lc-val.ok{color:#1D9E75}
+.loud-cell .lc-val.loud{color:#E24B4A}
+.lufs-bar-wrap{height:8px;background:var(--color-border-tertiary,#e5e5e5);border-radius:4px;overflow:hidden}
+.lufs-bar{height:8px;border-radius:4px;transition:width .4s,background .4s;width:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MP3 Compressor Pro</h1>
+  <p class="sub">บีบอัดหลายไฟล์พร้อมกัน · เปลี่ยนชื่อไฟล์แบบกลุ่ม — ใช้งานได้เลยในเบราว์เซอร์</p>
+  <div id="file-proto-warn" style="display:none;background:#fff8e6;border:0.5px solid #fcd34d;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-bottom:1rem;line-height:1.7">
+    ⚠️ <b>เปิดผ่าน file:// — ฟีเจอร์บางส่วนอาจไม่ทำงาน</b><br>
+    หากบีบอัดไม่ได้ ให้เปิดผ่าน web server แทน:<br>
+    <code style="background:#fef3c7;padding:2px 6px;border-radius:4px">python -m http.server 8000</code> แล้วเปิด <code style="background:#fef3c7;padding:2px 6px;border-radius:4px">http://localhost:8000</code>
+  </div>
+
+  <!-- Main tab bar -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchMain('compress')">🎵 บีบอัด MP3</button>
+    <button class="main-tab" onclick="switchMain('rename')">✏️ เปลี่ยนชื่อไฟล์</button>
+  </div>
+
+  <!-- ===== COMPRESS PANEL ===== -->
+  <div class="main-panel active" id="panel-compress">
+
+    <div class="card">
+      <div class="lbl">เพิ่มไฟล์ MP3</div>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('fileinput').click()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 12px;display:block"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="mt">ลากไฟล์ หรือโฟลเดอร์ MP3 มาวางที่นี่</div>
+        <div class="ms">คลิกเพื่อเลือกไฟล์ · หรือ <span onclick="event.stopPropagation();document.getElementById('folderinput').click()" style="color:#7F77DD;cursor:pointer;font-weight:600;text-decoration:underline">📁 เลือกโฟลเดอร์</span> <span style="color:#bbb">(แนะนำ)</span></div>
+      </div>
+      <input type="file" id="fileinput" accept=".mp3,audio/mpeg" multiple style="display:none">
+      <input type="file" id="folderinput" accept=".mp3,audio/mpeg" multiple webkitdirectory directory style="display:none">
+      <div class="flist" id="flist"></div>
+      <button class="cta-outline" id="clear-btn" onclick="clearFiles()" style="display:none">🗑 ล้างไฟล์ทั้งหมด</button>
+    </div>
+
+    <div class="card">
+      <div class="lbl">โหมดบีบอัด</div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem">
+        <button class="tab" id="t1" onclick="switchTab(0)">ตั้ง Bitrate เอง</button>
+        <button class="tab active" id="t2" onclick="switchTab(1)">กำหนดขนาดเป้าหมาย</button>
+      </div>
+
+      <div id="panel-br" style="display:none">
+        <div class="sublbl">Bitrate เป้าหมาย</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="br-val" value="128" min="8" max="320" class="ifield" style="width:100px" oninput="saveBitrate()">
+          <select class="isel" id="br-unit"><option>kbps</option></select>
+        </div>
+      </div>
+
+      <div id="panel-sz">
+        <div class="sublbl">ขนาดเป้าหมายต่อไฟล์</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="number" id="sz-val" value="2" min="0.1" step="0.1" class="ifield" style="width:100px" oninput="updateStats()">
+          <select class="isel" id="sz-unit" onchange="updateStats()"><option value="MB">MB</option><option value="KB">KB</option></select>
+          <span class="atag">คำนวณ Bitrate อัตโนมัติ</span>
+        </div>
+        <div class="hint">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7F77DD" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r=".5" fill="#7F77DD"/></svg>
+          <span>หากไฟล์สั้นเกินไป Bitrate ที่ต้องใช้อาจต่ำมาก ระบบใช้ 8 kbps เป็นขั้นต่ำ</span>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="sublbl">Channel</div>
+          <select class="sful" id="ch-mode"><option value="2">Stereo</option><option value="1">Mono</option></select>
+        </div>
+        <div>
+          <div class="sublbl">เปลี่ยนชื่อไฟล์</div>
+          <select class="sful" id="rename-mode" onchange="updateSeqVis()">
+            <option value="suffix">เพิ่มต่อท้าย</option>
+            <option value="seq">ใช้ลำดับ (sequence)</option>
+            <option value="keep">ชื่อเดิม</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- checkbox: add _compressed -->
+      <div class="chk-row" id="suffix-opt-row" style="margin-top:10px">
+        <input type="checkbox" id="add-compressed" checked onchange="updateSeqEx();renderCompressPreview()">
+        <label for="add-compressed">เพิ่ม <code>_compressed</code> ต่อท้ายชื่อไฟล์</label>
+      </div>
+
+      <div id="seq-section" style="display:none">
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:14px;font-weight:500;color:var(--color-text-primary,#1a1a1a)">ตั้งค่าลำดับ</span>
+        </div>
+        <div class="seq-row">
+          <div>
+            <div class="sublbl">เลขเริ่มต้น (4 หลัก)</div>
+            <input type="number" id="seq-start" value="1" min="0" max="9999" class="ifield" style="width:110px;font-family:monospace;letter-spacing:2px" oninput="clampSeq(this);updateSeqEx();renderCompressPreview()">
+          </div>
+          <div>
+            <div class="sublbl">เพิ่มทีละ</div>
+            <input type="number" id="seq-step" value="1" min="1" max="100" class="ifield" style="width:80px" oninput="updateSeqEx();renderCompressPreview()">
+          </div>
+          <div>
+            <div class="sublbl">ตำแหน่ง</div>
+            <select class="isel" id="seq-pos" onchange="updateSeqEx();renderCompressPreview()">
+              <option value="prefix">นำหน้า</option>
+              <option value="suffix">ต่อท้าย</option>
+            </select>
+          </div>
+        </div>
+        <div class="seq-ex" id="seq-ex"></div>
+      </div>
+    </div>
+
+    <!-- ===== AUDIO PROCESSING CARD ===== -->
+    <div class="card" id="audio-proc-card">
+      <div class="lbl">ปรับแต่งเสียง</div>
+
+      <!-- Loudness Meter -->
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <span>📊 วัดระดับความดัง</span>
+          <small>วิเคราะห์ Peak / RMS / LUFS ของไฟล์ที่เลือก</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="loud-toggle" onchange="onLoudToggle()">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div id="loud-panel" style="display:none">
+        <div class="loud-meter">
+          <!-- Row 1: Loudness -->
+          <div style="font-size:11px;font-weight:600;color:var(--color-text-tertiary,#aaa);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">🔊 ความดัง</div>
+          <div class="loud-grid">
+            <div class="loud-cell"><div class="lc-val" id="lm-peak">—</div><div class="lc-lbl">Peak (dBFS)</div></div>
+            <div class="loud-cell"><div class="lc-val" id="lm-rms">—</div><div class="lc-lbl">RMS (dBFS)</div></div>
+            <div class="loud-cell"><div class="lc-val" id="lm-lufs">—</div><div class="lc-lbl">Loudness (LUFS)</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--color-text-tertiary,#aaa);margin:6px 0 4px;display:flex;justify-content:space-between"><span>เงียบ</span><span>ดัง</span></div>
+          <div class="lufs-bar-wrap"><div class="lufs-bar" id="lufs-bar"></div></div>
+
+          <!-- Row 2: Noise -->
+          <div style="font-size:11px;font-weight:600;color:var(--color-text-tertiary,#aaa);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px">🎚️ นอยส์</div>
+          <div class="loud-grid">
+            <div class="loud-cell"><div class="lc-val" id="lm-nfloor">—</div><div class="lc-lbl">Noise Floor (dB)</div></div>
+            <div class="loud-cell"><div class="lc-val" id="lm-snr">—</div><div class="lc-lbl">SNR (dB)</div></div>
+            <div class="loud-cell"><div class="lc-val" id="lm-nratio">—</div><div class="lc-lbl">สัดส่วนนอยส์</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--color-text-tertiary,#aaa);margin:6px 0 4px;display:flex;justify-content:space-between"><span>นอยส์น้อย</span><span>นอยส์มาก</span></div>
+          <div class="lufs-bar-wrap"><div class="lufs-bar" id="noise-bar"></div></div>
+
+          <!-- Status & advice -->
+          <div id="lm-status" style="font-size:12px;color:var(--color-text-secondary,#666);margin-top:10px;padding:8px 10px;background:var(--color-background-primary,#fff);border-radius:6px;line-height:1.6">เลือกไฟล์เพื่อวัด</div>
+
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select class="isel" id="lm-file-sel" style="flex:1;min-width:0" onchange="measureLoudness()">
+              <option value="">— เลือกไฟล์ที่ต้องการวัด —</option>
+            </select>
+            <button class="tab" onclick="measureLoudness()" style="white-space:nowrap;padding:8px 14px">วัดใหม่</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Volume / Gain -->
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <span>🔊 ปรับระดับความดัง</span>
+          <small>เพิ่ม/ลด Volume ก่อนบีบอัด (Gain)</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="gain-toggle" onchange="onGainToggle()">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="gain-slider-wrap" id="gain-panel">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--color-text-tertiary,#aaa)">
+          <span>−18 dB (เบาลง)</span><span>0 dB (ปกติ)</span><span>+18 dB (ดังขึ้น)</span>
+        </div>
+        <div class="gain-row">
+          <input type="range" class="gslider" id="gain-slider" min="-18" max="18" step="0.5" value="0" oninput="onGainInput(this)">
+          <span class="gain-val" id="gain-display">0.0 dB</span>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7F77DD" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r=".5" fill="#7F77DD"/></svg>
+          <span>ค่า +6 dB = ดังขึ้น 2 เท่า / −6 dB = เบาลงครึ่งหนึ่ง · ระวัง Clipping เมื่อ Gain สูงเกินไป</span>
+        </div>
+      </div>
+
+      <!-- Noise Reduction -->
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <span>🎚️ ลดนอยส์</span>
+          <small>กรอง low-level noise ด้วย Spectral Gate (ปรับ Threshold ได้)</small>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="nr-toggle" onchange="onNrToggle()">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div id="nr-panel" style="display:none;margin-top:4px">
+        <div style="font-size:13px;color:var(--color-text-secondary,#666);margin-bottom:6px">Noise Threshold</div>
+        <div class="gain-row">
+          <input type="range" class="gslider" id="nr-slider" min="-80" max="-20" step="1" value="-40" oninput="onNrInput(this)">
+          <span class="gain-val" id="nr-display">−40 dB</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-tertiary,#aaa);margin-top:2px">
+          <span>−80 dB (ลดนอยส์น้อย)</span><span>−20 dB (ลดนอยส์มาก)</span>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#7F77DD" stroke-width="1.5" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="7" x2="8" y2="11"/><circle cx="8" cy="5" r=".5" fill="#7F77DD"/></svg>
+          <span>ค่าแนะนำ: −40 ถึง −30 dB เหมาะสำหรับเสียงทั่วไป ยิ่งสูง (ใกล้ −20) ยิ่งลดนอยส์มาก แต่อาจตัดเสียงเบาด้วย</span>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END AUDIO PROCESSING ===== -->
+
+    <div class="card">
+      <div class="lbl">สรุปขนาดไฟล์</div>
+      <div class="sgrid">
+        <div class="sc"><div class="sl">ขนาดรวมเดิม</div><div class="sv" id="st-orig">—</div></div>
+        <div class="sc"><div class="sl">ขนาดรวมคาดการณ์</div><div class="sv p" id="st-est">—</div></div>
+        <div class="sc"><div class="sl">ประหยัดพื้นที่</div><div class="sv p" id="st-save">—</div></div>
+      </div>
+    </div>
+
+    <!-- ===== PERFORMANCE CARD ===== -->
+    <div class="card" id="perf-card">
+      <div class="lbl">⚡ ความเร็วในการบีบอัด</div>
+
+      <!-- CPU Parallel -->
+      <div style="margin-bottom:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:var(--color-text-primary,#1a1a1a)">🧵 บีบอัดพร้อมกันกี่ไฟล์</div>
+            <div style="font-size:12px;color:var(--color-text-tertiary,#999);margin-top:2px">แต่ละไฟล์ใช้ AudioContext แยกกัน — ความยาวไฟล์ถูกต้องทุกกรณี</div>
+          </div>
+          <span id="cpu-thread-val" style="font-size:20px;font-weight:700;color:#7F77DD;min-width:32px;text-align:right">2</span>
+        </div>
+        <input type="range" class="gslider" id="cpu-threads" min="1" max="8" step="1" value="2" oninput="onThreadsInput(this)">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-tertiary,#aaa);margin-top:4px">
+          <span>1 ไฟล์</span>
+          <span id="cpu-cores-hint" style="color:#7F77DD;font-weight:500;text-align:center"></span>
+          <span>8 ไฟล์ (เร็วสุด)</span>
+        </div>
+      </div>
+
+      <!-- RAM warning -->
+      <div id="ram-warn" style="display:none;margin-top:10px;background:#fff8e6;border:0.5px solid #fcd34d;border-radius:8px;padding:9px 13px;font-size:12px;color:#92400e">
+        ⚠️ <b>ระวัง RAM:</b> encode MP3 ใช้ RAM ~50–200 MB ต่อไฟล์ ตั้งค่าสูงเกินไปอาจทำให้ browser ช้า
+      </div>
+
+      <!-- Honest GPU section -->
+      <div style="margin-top:14px;border-top:0.5px solid var(--color-border-tertiary,#e5e5e5);padding-top:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-secondary,#666);margin-bottom:8px">🖥️ GPU ช่วยได้แค่ไหน?</div>
+        <div style="font-size:12px;line-height:1.75;color:var(--color-text-secondary,#666)">
+          <div>✅ <b>Gain + Noise Reduction</b> — GPU (WebGPU) ช่วยได้จริง ประมวลผล sample data แบบ parallel</div>
+          <div style="margin-top:2px">❌ <b>Encode MP3</b> — GPU <u>ช่วยไม่ได้</u> เพราะ lamejs ทำงานบน CPU เท่านั้น ไม่มี MP3 encoder รัน WebGPU ได้ใน browser</div>
+        </div>
+        <div id="gpu-status-row" style="margin-top:8px;font-size:12px;padding:7px 11px;border-radius:7px;background:var(--color-background-secondary,#f5f5f5);color:var(--color-text-secondary,#666)">
+          🔍 ตรวจสอบ GPU...
+        </div>
+      </div>
+
+      <!-- Live stats during compress -->
+      <div id="perf-stats" style="display:none;margin-top:12px;background:#EEEDFE;border-radius:8px;padding:9px 14px;font-size:13px;color:#5B53C4;line-height:1.6">
+        <span id="perf-stat-txt"></span>
+      </div>
+    </div>
+    <!-- ===== END PERFORMANCE ===== -->
+
+    <!-- ===== CACHE CARD ===== -->
+    <div class="card" id="cache-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div class="lbl" style="margin-bottom:0">💾 แคชไฟล์เพื่อความเร็ว</div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="cache-enable" onchange="onCacheToggle()">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div style="font-size:12px;color:var(--color-text-tertiary,#999);margin-bottom:10px;line-height:1.6">
+        แคช <b>ผลลัพธ์การ encode</b> ไว้ใน IndexedDB — ไฟล์เดิม + การตั้งค่าเดิม → ข้ามการ encode ทันที
+      </div>
+
+      <div id="cache-settings" style="display:none">
+        <div class="divider"></div>
+
+        <!-- Cache location -->
+        <div style="margin-top:10px">
+          <div class="sublbl">ตำแหน่งแคช</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+            <button class="tab active" id="cl-idb" onclick="setCacheLoc('idb')">IndexedDB (แนะนำ)</button>
+            <button class="tab" id="cl-opfs" onclick="setCacheLoc('opfs')">OPFS (เร็วกว่า)</button>
+          </div>
+          <div id="cache-loc-hint" style="font-size:12px;color:var(--color-text-tertiary,#999);margin-top:6px;line-height:1.55">
+            IndexedDB: รองรับทุก browser · เก็บได้นาน · เปิด file:// ก็ใช้ได้
+          </div>
+        </div>
+
+        <!-- Cache size limit -->
+        <div style="margin-top:12px">
+          <div class="sublbl">ขนาดแคชสูงสุด</div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap">
+            <input type="range" class="gslider" id="cache-size-slider" min="50" max="2000" step="50" value="500"
+              oninput="onCacheSizeInput(this)" style="flex:1;min-width:120px">
+            <span id="cache-size-val" style="font-size:15px;font-weight:600;color:#7F77DD;min-width:60px;text-align:right">500 MB</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-tertiary,#aaa);margin-top:3px">
+            <span>50 MB</span><span>2 GB</span>
+          </div>
+        </div>
+
+        <!-- Cache stats -->
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div id="cache-stats-txt" style="font-size:12px;color:var(--color-text-secondary,#666)">
+            กำลังโหลดข้อมูลแคช...
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="move-btn" onclick="refreshCacheStats()" style="font-size:12px">🔄 รีเฟรช</button>
+            <button class="move-btn" onclick="clearCache()" style="font-size:12px;color:#E24B4A;border-color:#E24B4A">🗑 ล้างแคช</button>
+          </div>
+        </div>
+        <!-- Cache usage bar -->
+        <div style="margin-top:8px">
+          <div class="pbar-wrap" style="height:6px">
+            <div class="pbar done" id="cache-usage-bar" style="width:0;transition:width .4s"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-tertiary,#aaa);margin-top:3px">
+            <span id="cache-used-lbl">0 MB ใช้อยู่</span>
+            <span id="cache-limit-lbl">จาก 500 MB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END CACHE CARD ===== -->
+
+    <div id="progress-section" style="display:none;margin-bottom:1rem">
+      <div class="card" style="padding:1rem">
+        <div class="lbl" style="margin-bottom:.5rem" id="prog-lbl">กำลังบีบอัด...</div>
+        <div id="prog-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+
+    <!-- Compress: rename preview -->
+    <div class="cmp-preview-card" id="cmp-preview-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div class="lbl" style="margin-bottom:0">ตัวอย่างชื่อไฟล์ที่จะเปลี่ยน</div>
+        <div id="cmp-stats-inline" style="font-size:12px;color:var(--color-text-secondary,#888)"></div>
+      </div>
+      <div id="cmp-preview-list"></div>
+    </div>
+
+    <button class="cta" id="cta-btn" onclick="startCompress()">บีบอัดและดาวน์โหลดทั้งหมด</button>
+    <p class="fnote">ประมวลผลในเบราว์เซอร์ทั้งหมด &nbsp;|&nbsp; <b>ไม่มีการอัปโหลดไฟล์ขึ้นเซิร์ฟเวอร์</b></p>
+  </div>
+
+  <!-- ===== RENAME PANEL ===== -->
+  <div class="main-panel" id="panel-rename">
+
+    <div class="card">
+      <div class="lbl">เพิ่มไฟล์เพื่อเปลี่ยนชื่อ</div>
+      <div class="rn-drop" id="rn-dropzone" onclick="document.getElementById('rn-fileinput').click()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 10px;display:block"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+        <div class="mt">ลากไฟล์ หรือโฟลเดอร์มาวางที่นี่</div>
+        <div class="ms">คลิกเพื่อเลือกไฟล์ · หรือ <span onclick="event.stopPropagation();document.getElementById('rn-folderinput').click()" style="color:#7F77DD;cursor:pointer;font-weight:600;text-decoration:underline">📁 เลือกโฟลเดอร์</span> <span style="color:#bbb">(แนะนำ)</span></div>
+      </div>
+      <input type="file" id="rn-fileinput" multiple style="display:none">
+      <input type="file" id="rn-folderinput" multiple webkitdirectory directory style="display:none">
+    </div>
+
+    <div class="card" id="rn-settings-card">
+      <div class="lbl">ตั้งค่าลำดับเลข</div>
+
+      <div class="seq-row" style="margin-top:0">
+        <div>
+          <div class="sublbl">เลขเริ่มต้น (4 หลัก)</div>
+          <input type="number" id="rn-start" value="1" min="0" max="9999" class="ifield" style="width:110px;font-family:monospace;letter-spacing:2px" oninput="clampRnSeq(this);renderRenamePreview()">
+        </div>
+        <div>
+          <div class="sublbl">เพิ่มทีละ</div>
+          <input type="number" id="rn-step" value="1" min="1" max="100" class="ifield" style="width:80px" oninput="renderRenamePreview()">
+        </div>
+        <div>
+          <div class="sublbl">ตำแหน่ง</div>
+          <select class="isel" id="rn-pos" onchange="renderRenamePreview()">
+            <option value="prefix">นำหน้า</option>
+            <option value="suffix">ต่อท้าย</option>
+          </select>
+        </div>
+      </div>
+      <div class="seq-ex" id="rn-ex" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" id="rn-preview-card" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div class="lbl" style="margin-bottom:0">ตัวอย่างชื่อไฟล์ที่จะเปลี่ยน</div>
+        <div id="rn-stats-inline" style="font-size:12px;color:var(--color-text-secondary,#888)"></div>
+      </div>
+
+      <div id="rn-preview-list"></div>
+
+      <div class="rn-toolbar">
+        <button class="rn-cta" id="rn-apply-btn" onclick="applyRename()">⬇ ดาวน์โหลดทั้งหมด (ชื่อใหม่)</button>
+        <button class="move-btn" onclick="clearRenameFiles()" style="color:#E24B4A;border-color:#E24B4A">🗑 ล้างไฟล์</button>
+      </div>
+      <p class="fnote" style="text-align:left;margin-top:.75rem">เลขนำหน้าในชื่อไฟล์เดิมจะถูก<b>ลบออก</b>ก่อน แล้วใส่ Prefix ใหม่ให้อัตโนมัติ</p>
+    </div>
+
+  </div><!-- end rename panel -->
+
+</div><!-- wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<script>
+// =====================================================================
+// STATE
+// =====================================================================
+let files = []; // each entry: { file, addedAt }
+let rnFiles = []; // each entry: { file, addedAt }
+let audioCtx = null;
+let gpuSupported = false;
+let gpuDevice = null;
+
+// =====================================================================
+// MAIN TAB SWITCH
+// =====================================================================
+function switchMain(mode) {
+  document.querySelectorAll('.main-tab').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && mode === 'compress') || (i === 1 && mode === 'rename'));
+  });
+  document.getElementById('panel-compress').classList.toggle('active', mode === 'compress');
+  document.getElementById('panel-rename').classList.toggle('active', mode === 'rename');
+}
+
+// =====================================================================
+// COMPRESS: FILE MANAGEMENT
+// =====================================================================
+const dropzone = document.getElementById('dropzone');
+const fileinput = document.getElementById('fileinput');
+const folderinput = document.getElementById('folderinput');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
+dropzone.addEventListener('dragleave', e => { if (!dropzone.contains(e.relatedTarget)) dropzone.classList.remove('over'); });
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('over');
+  handleDrop(e, addFiles);
+});
+fileinput.addEventListener('change', e => { addFiles(e.target.files); fileinput.value = ''; });
+folderinput.addEventListener('change', e => { addFiles(e.target.files); folderinput.value = ''; });
+
+// Recursively resolve a FileSystemEntry -> Promise<File[]>
+// ---------------------------------------------------------------
+// DROP HANDLER — works on both file:// and http://
+// ---------------------------------------------------------------
+function handleDrop(e, callback) {
+  const items = e.dataTransfer.items;
+  // Try FileSystem API first (needs http:// or localhost)
+  if (items && items.length && items[0].webkitGetAsEntry) {
+    const entries = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry();
+      if (entry) entries.push(entry);
+    }
+    if (entries.length) {
+      // Check if any entry is a directory
+      const hasDir = entries.some(en => en.isDirectory);
+      if (hasDir) {
+        // At least one folder — read recursively
+        readEntries(entries, callback);
+        return;
+      }
+      // All files — read directly
+      readEntries(entries, callback);
+      return;
+    }
+  }
+  // Fallback: e.dataTransfer.files (file:// or older browsers)
+  // Check if user tried to drop a folder (size === 0, type === '')
+  const fl = e.dataTransfer.files;
+  const hasFolder = Array.from(fl).some(f => f.size === 0 && f.type === '');
+  if (hasFolder) {
+    showFolderWarning();
+    // Still add any actual files that came with it
+    const realFiles = Array.from(fl).filter(f => !(f.size === 0 && f.type === ''));
+    if (realFiles.length) callback(realFiles);
+    return;
+  }
+  callback(fl);
+}
+
+function showFolderWarning() {
+  const existing = document.getElementById('folder-warn');
+  if (existing) return;
+  const div = document.createElement('div');
+  div.id = 'folder-warn';
+  div.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #E24B4A;border-radius:10px;padding:12px 20px;font-size:13px;color:#E24B4A;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.12);max-width:340px;text-align:center;line-height:1.5';
+  div.innerHTML = '⚠️ <b>ไม่สามารถลากโฟลเดอร์มาวางได้เมื่อเปิดไฟล์ .html โดยตรง</b><br><span style="color:#666">กรุณาใช้ปุ่ม <b>"เลือกโฟลเดอร์"</b> แทน หรือเปิดผ่าน web server</span>';
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 5000);
+}
+
+function entryToFiles(entry) {
+  if (entry.isFile) {
+    return new Promise(resolve => {
+      entry.file(f => resolve([f]), () => resolve([]));
+    });
+  }
+  if (entry.isDirectory) {
+    return new Promise(resolve => {
+      const reader = entry.createReader();
+      const allEntries = [];
+      function readBatch() {
+        reader.readEntries(
+          function(batch) {
+            if (!batch.length) {
+              Promise.all(allEntries.map(entryToFiles))
+                .then(function(nested) { resolve(nested.flat()); });
+              return;
+            }
+            allEntries.push.apply(allEntries, batch);
+            readBatch();
+          },
+          function() { resolve([]); }
+        );
+      }
+      readBatch();
+    });
+  }
+  return Promise.resolve([]);
+}
+
+async function readEntries(entries, callback) {
+  const results = await Promise.all(entries.map(entryToFiles));
+  callback(results.flat());
+}
+
+function addFiles(fl) {
+  const now = Date.now();
+  let idx = 0;
+  const newEntries = [];
+  for (const f of fl) {
+    if (f.type === 'audio/mpeg' || f.name.endsWith('.mp3')) {
+      if (!files.find(x => x.file.name === f.name && x.file.size === f.size)) {
+        const entry = { file: f, addedAt: now + idx, dur: null, kbps: null };
+        files.push(entry);
+        newEntries.push(entry);
+        idx++;
+      }
+    }
+  }
+  files.sort((a, b) => a.addedAt - b.addedAt);
+  renderList();
+  updateStats();
+  // Load metadata serially (one at a time) to avoid OOM
+  scheduleMetaLoad(newEntries);
+}
+
+let _metaQueue = [];
+let _metaRunning = false;
+
+function scheduleMetaLoad(entries) {
+  _metaQueue.push(...entries);
+  if (!_metaRunning) runMetaQueue();
+}
+
+async function runMetaQueue() {
+  _metaRunning = true;
+  while (_metaQueue.length) {
+    const entry = _metaQueue.shift();
+    await loadMeta(entry);
+  }
+  _metaRunning = false;
+}
+
+async function loadMeta(entry) {
+  try {
+    // Use a fresh AudioContext each time and close it after — prevents memory leak
+    // Read only a slice of the file for metadata (first 2MB is enough to get duration)
+    const sliceSize = Math.min(entry.file.size, 2 * 1024 * 1024);
+    const buf = await entry.file.slice(0, sliceSize).arrayBuffer();
+    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+    let decoded;
+    try {
+      decoded = await tmpCtx.decodeAudioData(buf);
+    } catch(e) {
+      // Slice decode failed — try full file but only for small files (<10MB)
+      if (entry.file.size < 10 * 1024 * 1024) {
+        const fullBuf = await entry.file.arrayBuffer();
+        decoded = await tmpCtx.decodeAudioData(fullBuf);
+      } else {
+        // Estimate duration from file size + typical bitrate
+        entry.dur = null;
+        entry.kbps = null;
+        await tmpCtx.close();
+        renderList(); updateStats();
+        return;
+      }
+    }
+    entry.dur = decoded.duration;
+    entry.kbps = Math.round((entry.file.size * 8) / (decoded.duration * 1000));
+    await tmpCtx.close();
+    renderList();
+    updateStats();
+  } catch(e) { /* skip files that can't be decoded */ }
+}
+
+function fmtDur(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function removeFile(i) { files.splice(i, 1); renderList(); updateStats(); }
+
+function clearFiles() {
+  files = [];
+  renderList();
+  updateStats();
+}
+
+function fmtSize(b) {
+  if (b >= 1048576) return (b / 1048576).toFixed(2) + ' MB';
+  return (b / 1024).toFixed(1) + ' KB';
+}
+
+function renderList() {
+  const el = document.getElementById('flist');
+  const btn = document.getElementById('clear-btn');
+  if (!files.length) { el.innerHTML = ''; btn.style.display = 'none'; renderCompressPreview(); return; }
+  btn.style.display = 'block';
+  btn.textContent = `🗑 ล้างไฟล์ทั้งหมด (${files.length} ไฟล์)`;
+  el.innerHTML = files.map((entry, i) => {
+    const f = entry.file;
+    const metaParts = [];
+    if (entry.dur !== null) metaParts.push(fmtDur(entry.dur));
+    if (entry.kbps !== null) metaParts.push(`${entry.kbps} kbps`);
+    const metaStr = metaParts.length
+      ? `<span style="color:var(--color-text-tertiary,#aaa);font-size:11px;white-space:nowrap;margin-right:4px">${metaParts.join(' · ')}</span>`
+      : `<span style="color:var(--color-text-tertiary,#bbb);font-size:11px;white-space:nowrap;margin-right:4px">…</span>`;
+    return `<div class="fitem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="2" style="flex-shrink:0"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <span class="fname">${escHtml(f.name)}</span>
+      ${metaStr}
+      <span class="fsize">${fmtSize(f.size)}</span>
+      <button class="fdel" onclick="removeFile(${i})">&#10005;</button>
+    </div>`;
+  }).join('');
+  renderCompressPreview();
+}
+
+// =====================================================================
+// COMPRESS: BITRATE MEMORY (localStorage)
+// =====================================================================
+function saveBitrate() {
+  try { localStorage.setItem('mp3c_bitrate', document.getElementById('br-val').value); } catch(e){}
+}
+function loadBitrate() {
+  try {
+    const v = localStorage.getItem('mp3c_bitrate');
+    if (v) document.getElementById('br-val').value = v;
+  } catch(e){}
+}
+loadBitrate();
+
+// =====================================================================
+// COMPRESS: STATS & TAB
+// =====================================================================
+function getTargetBits(durationSec) {
+  const mode = document.getElementById('t2').classList.contains('active') ? 'size' : 'br';
+  if (mode === 'br') return parseInt(document.getElementById('br-val').value) || 128;
+  const szVal = parseFloat(document.getElementById('sz-val').value) || 2;
+  const unit = document.getElementById('sz-unit').value;
+  const bytes = unit === 'MB' ? szVal * 1048576 : szVal * 1024;
+  const kbps = Math.max(8, Math.floor((bytes * 8) / (durationSec * 1000)));
+  return Math.min(320, kbps);
+}
+
+function snapBitrate(kbps) {
+  const valid = [8,16,24,32,40,48,56,64,80,96,112,128,160,192,224,256,320];
+  return valid.reduce((a, b) => Math.abs(b - kbps) < Math.abs(a - kbps) ? b : a);
+}
+
+function updateStats() {
+  if (!files.length) {
+    document.getElementById('st-orig').textContent = '—';
+    document.getElementById('st-est').textContent = '—';
+    document.getElementById('st-save').textContent = '—';
+    return;
+  }
+  const totalOrig = files.reduce((s, entry) => s + entry.file.size, 0);
+  document.getElementById('st-orig').textContent = fmtSize(totalOrig);
+  const mode = document.getElementById('t2').classList.contains('active') ? 'size' : 'br';
+  if (mode === 'size') {
+    const szVal = parseFloat(document.getElementById('sz-val').value) || 2;
+    const unit = document.getElementById('sz-unit').value;
+    const perFile = unit === 'MB' ? szVal * 1048576 : szVal * 1024;
+    const skipCount = files.filter(e => e.file.size <= perFile).length;
+    const compressCount = files.length - skipCount;
+    const totalEst = files.reduce((s, e) => s + (e.file.size <= perFile ? e.file.size : perFile), 0);
+    const save = Math.max(0, totalOrig - totalEst);
+    const estText = fmtSize(totalEst) + (skipCount > 0 ? ` (ข้าม ${skipCount} ไฟล์)` : '');
+    document.getElementById('st-est').textContent = estText;
+    document.getElementById('st-save').textContent = totalOrig > 0 ? (save / totalOrig * 100).toFixed(1) + '%' : '—';
+  } else {
+    document.getElementById('st-est').textContent = 'ขึ้นกับความยาวไฟล์';
+    document.getElementById('st-save').textContent = '—';
+  }
+}
+
+function switchTab(i) {
+  document.getElementById('t1').classList.toggle('active', i === 0);
+  document.getElementById('t2').classList.toggle('active', i === 1);
+  document.getElementById('panel-br').style.display = i === 0 ? 'block' : 'none';
+  document.getElementById('panel-sz').style.display = i === 1 ? 'block' : 'none';
+  updateStats();
+}
+
+// =====================================================================
+// COMPRESS: RENAME MODE UI
+// =====================================================================
+function updateSeqVis() {
+  const v = document.getElementById('rename-mode').value;
+  document.getElementById('seq-section').style.display = v === 'seq' ? 'block' : 'none';
+  document.getElementById('suffix-opt-row').style.display = v === 'suffix' ? 'flex' : 'none';
+  if (v === 'seq') updateSeqEx();
+  renderCompressPreview();
+}
+
+function clampSeq(el) {
+  let v = parseInt(el.value) || 0;
+  if (v < 0) v = 0; if (v > 9999) v = 9999;
+  el.value = String(v).padStart(4, '0');
+}
+
+function pad4(n) { return String(Math.max(0, Math.min(9999, n))).padStart(4, '0'); }
+
+function updateSeqEx() {
+  const v = document.getElementById('rename-mode').value;
+  if (v === 'seq') {
+    const s = parseInt(document.getElementById('seq-start').value) || 1;
+    const step = parseInt(document.getElementById('seq-step').value) || 1;
+    const pos = document.getElementById('seq-pos').value;
+    const ex0 = pos === 'prefix' ? `${pad4(s)}_song.mp3` : `song_${pad4(s)}.mp3`;
+    const ex1 = pos === 'prefix' ? `${pad4(s+step)}_song.mp3` : `song_${pad4(s+step)}.mp3`;
+    document.getElementById('seq-ex').innerHTML = `ตัวอย่าง: <span>${ex0}</span>, <span>${ex1}</span>, …`;
+  }
+  renderCompressPreview();
+}
+
+// Strip leading numeric prefix (digits_ or digits at start up to first letter)
+function stripLeadingNums(base) {
+  // Remove patterns like: 0001_ or 01_ or 001- or pure digits at start before first letter
+  return base.replace(/^\d+[_\-\s]*/, '');
+}
+
+function getOutName(origName, idx) {
+  const rawBase = origName.replace(/\.mp3$/i, '');
+  const base = stripLeadingNums(rawBase); // always strip leading numbers
+  const mode = document.getElementById('rename-mode').value;
+  if (mode === 'suffix') {
+    const addC = document.getElementById('add-compressed').checked;
+    return addC ? base + '_compressed.mp3' : base + '.mp3';
+  }
+  if (mode === 'keep') return origName;
+  const s = parseInt(document.getElementById('seq-start').value) || 1;
+  const step = parseInt(document.getElementById('seq-step').value) || 1;
+  const pos = document.getElementById('seq-pos').value;
+  const num = pad4(s + idx * step);
+  return pos === 'prefix' ? `${num}_${base}.mp3` : `${base}_${num}.mp3`;
+}
+
+function renderCompressPreview() {
+  const card = document.getElementById('cmp-preview-card');
+  const listEl = document.getElementById('cmp-preview-list');
+  const statsEl = document.getElementById('cmp-stats-inline');
+  const mode = document.getElementById('rename-mode').value;
+  if (!files.length || mode === 'keep') { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const rows = files.map((entry, i) => {
+    const f = entry.file;
+    const newName = getOutName(f.name, i);
+    const changed = newName !== f.name;
+    return `<tr>
+      <td style="color:var(--color-text-tertiary,#aaa);font-size:12px;width:30px;text-align:center">${i+1}</td>
+      <td class="old-name">${escHtml(f.name)}</td>
+      <td style="color:#aaa;text-align:center">→</td>
+      <td class="${changed ? 'new-name' : 'no-change'}">${escHtml(newName)}${changed ? '<span class="badge-new">ใหม่</span>' : ''}</td>
+    </tr>`;
+  }).join('');
+  listEl.innerHTML = `<div style="max-height:260px;overflow-y:auto;border-radius:8px;border:0.5px solid var(--color-border-tertiary,#e5e5e5)"><table class="preview-table">
+    <thead style="position:sticky;top:0;z-index:1"><tr><th>#</th><th>ชื่อเดิม</th><th></th><th>ชื่อใหม่</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+  statsEl.textContent = `${files.length} ไฟล์`;
+}
+
+// Initial UI
+updateSeqVis();
+updateSeqEx();
+
+// =====================================================================
+// PERFORMANCE: CPU PARALLEL WORKERS
+// =====================================================================
+
+function onThreadsInput(el) {
+  const v = parseInt(el.value);
+  document.getElementById('cpu-thread-val').textContent = v;
+  const max = parseInt(el.max);
+  const pct = ((v - 1) / (max - 1)) * 100;
+  el.style.setProperty('--val', pct + '%');
+  // Show RAM warning if >= 4 parallel
+  document.getElementById('ram-warn').style.display = v >= 4 ? 'block' : 'none';
+}
+
+// Detect CPU cores on load + GPU status
+(async function detectHardware() {
+  const cores = navigator.hardwareConcurrency || 4;
+  // Recommend: floor(cores/2) capped at 4 to be safe on RAM
+  const recommended = Math.min(4, Math.max(1, Math.floor(cores / 2)));
+  const slider = document.getElementById('cpu-threads');
+  slider.value = recommended;
+  document.getElementById('cpu-thread-val').textContent = recommended;
+  const pct = ((recommended - 1) / (parseInt(slider.max) - 1)) * 100;
+  slider.style.setProperty('--val', pct + '%');
+  document.getElementById('cpu-cores-hint').textContent = `CPU ${cores} cores · แนะนำ ${recommended}`;
+  if (recommended >= 4) document.getElementById('ram-warn').style.display = 'block';
+
+  // GPU detection — honest status only, no toggle (GPU can't encode MP3)
+  const row = document.getElementById('gpu-status-row');
+  if (!navigator.gpu) {
+    row.textContent = '❌ WebGPU ไม่รองรับในเบราว์เซอร์นี้ — ใช้ Chrome 113+ หรือ Edge 113+';
+    row.style.background = '#fff5f5'; row.style.color = '#E24B4A';
+    return;
+  }
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) throw new Error('no adapter');
+    gpuDevice = await adapter.requestDevice();
+    gpuSupported = true;
+    const info = await adapter.requestAdapterInfo?.().catch(() => ({}));
+    const gpuName = info?.description || info?.vendor || 'WebGPU Adapter';
+    row.innerHTML = `✅ <b>GPU พร้อม:</b> ${gpuName} — ใช้เร่ง Gain + Noise Reduction อัตโนมัติเมื่อเปิดใช้`;
+    row.style.background = '#f0fdf4'; row.style.color = '#166534';
+    gpuDevice.lost.then(() => { gpuDevice = null; gpuSupported = false; });
+  } catch(e) {
+    row.textContent = '⚠️ GPU ตรวจพบแต่เริ่มต้นไม่ได้ — ใช้ CPU แทนอัตโนมัติ';
+    row.style.background = '#fff8e6'; row.style.color = '#92400e';
+  }
+})();
+
+// =====================================================================
+// COMPRESS: ENCODE
+// =====================================================================
+
+// =====================================================================
+// COMPRESS: ENCODE
+// =====================================================================
+
+// ---------------------------------------------------------------
+// Worker: โหลด lamejs จาก CDN (cache ครั้งแรก แล้วใช้ได้ offline)
+// ---------------------------------------------------------------
+const LAME_CDN = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+
+const WORKER_LOGIC = `
+self.onmessage=function(e){
+  const {left,right,numCh,sampleRate,kbps}=e.data;
+  try {
+    const encoder=new lamejs.Mp3Encoder(numCh,sampleRate,kbps);
+    const blockSize=1152;
+    const mp3Data=[];
+    const toInt16=f=>Math.max(-32768,Math.min(32767,f<0?f*32768:f*32767));
+    const totalBlocks=Math.ceil(left.length/blockSize);
+    for(let blockIdx=0;blockIdx<totalBlocks;blockIdx++){
+      const i=blockIdx*blockSize;
+      const end=Math.min(i+blockSize,left.length);
+      const lBuf=new Int16Array(end-i);
+      const rBuf=new Int16Array(end-i);
+      for(let j=0;j<end-i;j++){lBuf[j]=toInt16(left[i+j]);rBuf[j]=toInt16(right[i+j]);}
+      const buf=numCh>1?encoder.encodeBuffer(lBuf,rBuf):encoder.encodeBuffer(lBuf);
+      if(buf.length>0) mp3Data.push(buf);
+      if(blockIdx%200===0) self.postMessage({type:'progress',pct:Math.round((blockIdx/totalBlocks)*100)});
+    }
+    const tail=encoder.flush();
+    if(tail.length>0) mp3Data.push(tail);
+    let total=0; mp3Data.forEach(b=>total+=b.length);
+    const out=new Uint8Array(total);
+    let offset=0; mp3Data.forEach(b=>{out.set(b,offset);offset+=b.length;});
+    self.postMessage({type:'done',mp3:out},[out.buffer]);
+  } catch(err) {
+    self.postMessage({type:'error',msg:err.message||String(err)});
+  }
+};`;
+
+// Cache lamejs source — fetch once, reuse for all workers
+let _lameJsSrcCache = null;
+async function getLameJsSrc() {
+  if (_lameJsSrcCache) return _lameJsSrcCache;
+
+  // Try fetch (works on http:// — browser will use disk cache after first load)
+  try {
+    const r = await fetch(LAME_CDN);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    _lameJsSrcCache = await r.text();
+    return _lameJsSrcCache;
+  } catch(e) { /* fetch failed — try next method */ }
+
+  // file:// fallback: if CDN script tag loaded successfully, window.lamejs exists
+  // Re-fetch same URL hoping browser cache serves it (sometimes works on file://)
+  // If not, throw a clear error instead of crashing
+  if (typeof lamejs === 'undefined') {
+    throw new Error('ไม่สามารถโหลด lamejs ได้\n\nวิธีแก้: เปิดไฟล์ผ่าน web server แทน file://\nหรือเชื่อมต่ออินเทอร์เน็ตแล้วโหลดหน้าใหม่ครั้งแรก');
+  }
+
+  // lamejs is loaded in main thread — we need the source text for the worker
+  // Try fetching from CDN one more time (may succeed from cache even on file://)
+  try {
+    const r = await fetch(LAME_CDN, { cache: 'force-cache' });
+    if (r.ok) { _lameJsSrcCache = await r.text(); return _lameJsSrcCache; }
+  } catch(e) {}
+
+  throw new Error('โหลด lamejs ไม่สำเร็จ — กรุณาเปิดไฟล์ผ่าน web server\n(ลาก .html ลงบน VS Code Live Server หรือใช้ python -m http.server)');
+}
+
+async function createEncoderWorker() {
+  const lameSrc = await getLameJsSrc();
+  const blob = new Blob([lameSrc + '\n' + WORKER_LOGIC], { type: 'application/javascript' });
+  return new Worker(URL.createObjectURL(blob));
+}
+
+async function encodeWithWorker(audioBuffer, kbps, channels, onProgress) {
+  const numCh = Math.min(parseInt(channels), audioBuffer.numberOfChannels);
+  const left = new Float32Array(audioBuffer.getChannelData(0));
+  const right = numCh > 1 && audioBuffer.numberOfChannels > 1 ? new Float32Array(audioBuffer.getChannelData(1)) : new Float32Array(left);
+  const worker = await createEncoderWorker();
+  return new Promise((resolve, reject) => {
+    worker.onmessage = e => {
+      if (e.data.type === 'progress' && onProgress) onProgress(20 + Math.round(e.data.pct * 0.7));
+      else if (e.data.type === 'done') { worker.terminate(); resolve(e.data.mp3); }
+      else if (e.data.type === 'error') { worker.terminate(); reject(new Error(e.data.msg)); }
+    };
+    worker.onerror = err => { worker.terminate(); reject(new Error('Worker error: ' + (err.message || err))); };
+    worker.postMessage({ left, right, numCh, sampleRate: audioBuffer.sampleRate, kbps }, [left.buffer, right.buffer]);
+  });
+}
+
+async function startCompress() {
+  if (!files.length) { alert('กรุณาเพิ่มไฟล์ MP3 ก่อนครับ'); return; }
+  const btn = document.getElementById('cta-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังบีบอัด...';
+  try {
+    await _doCompress(btn);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'บีบอัดและดาวน์โหลดทั้งหมด';
+    const msg = e.message || String(e);
+    alert('❌ เกิดข้อผิดพลาด:\n\n' + msg);
+    console.error(e);
+  }
+}
+
+async function _doCompress(btn) {
+  const progSec = document.getElementById('progress-section');
+  progSec.style.display = 'block';
+  document.getElementById('prog-lbl').textContent = 'กำลังบีบอัด...';
+  document.getElementById('prog-lbl').style.color = '';
+  const progList = document.getElementById('prog-list');
+  progList.innerHTML = '';
+
+  const maxParallel = parseInt(document.getElementById('cpu-threads').value) || 2;
+  const useGpuDsp = gpuSupported && gpuDevice; // auto — no toggle needed
+  const channels = document.getElementById('ch-mode').value;
+
+  // Show perf banner
+  const perfStats = document.getElementById('perf-stats');
+  const perfTxt = document.getElementById('perf-stat-txt');
+  perfStats.style.display = 'block';
+  const gpuLabel = useGpuDsp ? ' · GPU DSP' : '';
+  perfTxt.innerHTML = `กำลังประมวลผล <b>${maxParallel} ไฟล์พร้อมกัน</b>${gpuLabel} · รวม ${files.length} ไฟล์`;
+
+  // Create progress rows — show slot indicator
+  files.forEach((entry, i) => {
+    const d = document.createElement('div');
+    d.innerHTML = `<div style="display:flex;justify-content:space-between;font-size:13px;gap:8px">
+      <span style="color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${escHtml(entry.file.name)}</span>
+      <span id="pst-${i}" style="color:var(--color-text-tertiary,#aaa);white-space:nowrap;font-size:12px">รอคิว</span>
+    </div><div class="pbar-wrap"><div class="pbar" id="pb-${i}"></div></div>`;
+    progList.appendChild(d);
+  });
+
+  const useFS = ('showDirectoryPicker' in window);
+  let dirHandle = null;
+  if (useFS) {
+    try { dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+    catch(e) {
+      btn.disabled = false; btn.textContent = 'บีบอัดและดาวน์โหลดทั้งหมด';
+      progSec.style.display = 'none'; perfStats.style.display = 'none'; return;
+    }
+  }
+
+  const startTime = Date.now();
+  let active = 0, fileIdx = 0, completed = 0;
+
+  async function processOne(i) {
+    const f = files[i].file;
+    const pst = document.getElementById(`pst-${i}`);
+    const pb = document.getElementById(`pb-${i}`);
+    pst.style.color = '';
+    try {
+      // Size mode: skip small files
+      const isSizeMode = document.getElementById('t2').classList.contains('active');
+      if (isSizeMode) {
+        const szVal = parseFloat(document.getElementById('sz-val').value) || 2;
+        const unit = document.getElementById('sz-unit').value;
+        const targetBytes = unit === 'MB' ? szVal * 1048576 : szVal * 1024;
+        if (f.size <= targetBytes) {
+          pb.style.width = '100%'; pb.classList.add('done');
+          pst.textContent = `ข้ามแล้ว (เล็กกว่าเป้า) ✓`; pst.style.color = '#1D9E75';
+          const outName = getOutName(f.name, i);
+          if (dirHandle) {
+            const fh = await dirHandle.getFileHandle(outName, { create: true });
+            const w = await fh.createWritable(); await w.write(f); await w.close();
+          } else {
+            const url = URL.createObjectURL(f);
+            const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }
+          return;
+        }
+      }
+
+      // ── ตรวจ Cache ก่อน ──────────────────────────────────────────
+      // หา duration ก่อน (ใช้ metadata ที่โหลดไว้แล้ว หรือ estimate)
+      const estDur  = files[i].dur || ((f.size * 8) / (128 * 1000)); // estimate @128kbps
+      const estKbps = snapBitrate(getTargetBits(estDur));
+      const cacheKey = buildCacheKey(f, estKbps, channels);
+
+      pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '5%';
+      const cached = await cacheGet(cacheKey);
+      if (cached) {
+        // ✅ Cache HIT — ข้ามการ decode + encode ทั้งหมด
+        pb.style.width = '95%';
+        const outName = getOutName(f.name, i);
+        if (dirHandle) {
+          const fh = await dirHandle.getFileHandle(outName, { create: true });
+          const w  = await fh.createWritable();
+          await w.write(new Blob([cached], { type: 'audio/mpeg' }));
+          await w.close();
+        } else {
+          const url = URL.createObjectURL(new Blob([cached], { type: 'audio/mpeg' }));
+          const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+        pb.style.width = '100%'; pb.classList.add('done');
+        pst.textContent = `⚡ แคช · ${fmtSize(cached.byteLength)} @ ${estKbps}kbps ✓`;
+        pst.style.color = '#7F77DD';
+        return;
+      }
+
+      // Step 1: Decode
+      // ✅ AudioContext แยกต่างหากต่อไฟล์ — ไม่แชร์ global เพื่อป้องกันข้อมูลเสียหายเมื่อรัน parallel
+      pst.textContent = '① decode...'; pb.style.width = '10%';
+      const rawBuf = await f.arrayBuffer();
+      const localCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // rawBuf.slice(0) เพื่อป้องกัน detach ของ ArrayBuffer เมื่อรัน parallel
+      const audioBuf = await localCtx.decodeAudioData(rawBuf.slice(0));
+      const dur = audioBuf.duration;
+      const origKbps = files[i].kbps || Math.round((f.size * 8) / (dur * 1000));
+      const targetKbps = snapBitrate(getTargetBits(dur));
+
+      // Step 2: DSP (Gain + NR) — GPU if available, else CPU
+      const gainOn = document.getElementById('gain-toggle').checked;
+      const nrOn = document.getElementById('nr-toggle').checked;
+      if (gainOn || nrOn) {
+        pst.textContent = useGpuDsp ? '② DSP (GPU)...' : '② DSP (CPU)...';
+        pb.style.width = '20%';
+      }
+      const processedBuf = await applyAudioProcessingAsync(audioBuf);
+      pb.style.width = '25%';
+
+      // Step 3: Encode MP3 — CPU only (Web Worker)
+      pst.textContent = `③ encode CPU · ${origKbps}→${targetKbps}kbps`;
+      const mp3 = await encodeWithWorker(processedBuf, targetKbps, channels, pct => {
+        pb.style.width = (25 + pct * 0.65) + '%';
+        pst.textContent = `③ encode CPU ${pct}% · ${origKbps}→${targetKbps}kbps`;
+      });
+
+      // 🧹 ปิด local AudioContext ทันทีหลัง encode เสร็จ — คืน memory
+      try { await localCtx.close(); } catch(e) {}
+
+      // 💾 บันทึกลง Cache (async, ไม่บล็อก)
+      cachePut(cacheKey, mp3, f.size).catch(() => {});
+
+      // Step 4: Save
+      pb.style.width = '95%';
+      const outName = getOutName(f.name, i);
+      if (dirHandle) {
+        const fh = await dirHandle.getFileHandle(outName, { create: true });
+        const w = await fh.createWritable();
+        await w.write(new Blob([mp3], { type: 'audio/mpeg' }));
+        await w.close();
+      } else {
+        const url = URL.createObjectURL(new Blob([mp3], { type: 'audio/mpeg' }));
+        const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      pb.style.width = '100%'; pb.classList.add('done');
+      pst.textContent = `${fmtDur(dur)} · ${fmtSize(mp3.length)} @ ${targetKbps}kbps ✓`;
+      pst.style.color = '#1D9E75';
+    } catch(err) {
+      pb.style.width = '100%'; pb.classList.add('err');
+      pst.textContent = 'เกิดข้อผิดพลาด ✕'; pst.style.color = '#E24B4A';
+      console.error(err);
+    }
+  }
+
+  // Semaphore queue — maxParallel concurrent
+  await new Promise(resolve => {
+    function next() {
+      while (active < maxParallel && fileIdx < files.length) {
+        const i = fileIdx++;
+        active++;
+        document.getElementById(`pst-${i}`).textContent = '⏳ เริ่ม...';
+        processOne(i).then(() => {
+          active--; completed++;
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+          perfTxt.innerHTML = `ประมวลผล <b>${maxParallel} ไฟล์พร้อมกัน</b>${gpuLabel} · เสร็จ ${completed}/${files.length} · ${elapsed}s`;
+          if (completed === files.length) resolve();
+          else next();
+        });
+      }
+    }
+    next();
+  });
+
+  const totalSec = ((Date.now() - startTime) / 1000).toFixed(1);
+  perfTxt.innerHTML = `✅ เสร็จสิ้น <b>${files.length} ไฟล์</b> · ใช้เวลา <b>${totalSec}s</b>${gpuLabel}`;
+
+  btn.disabled = false;
+  btn.textContent = 'บีบอัดและดาวน์โหลดทั้งหมด';
+  if (dirHandle) {
+    document.getElementById('prog-lbl').textContent = `บันทึกไฟล์ลง "${dirHandle.name}" เรียบร้อย ✓`;
+    document.getElementById('prog-lbl').style.color = '#1D9E75';
+  }
+
+  // ✅ แสดงผลสำเร็จ — ไม่ล้างไฟล์อัตโนมัติ ให้ผู้ใช้กดล้างเอง
+  if (!dirHandle) {
+    document.getElementById('prog-lbl').textContent = `✅ ดาวน์โหลดเสร็จสิ้น ${files.length} ไฟล์`;
+    document.getElementById('prog-lbl').style.color = '#1D9E75';
+  }
+  btn.disabled = false;
+  btn.textContent = 'บีบอัดและดาวน์โหลดทั้งหมด';
+}
+
+// =====================================================================
+// RENAME TAB
+// =====================================================================
+const rnDrop = document.getElementById('rn-dropzone');
+const rnInput = document.getElementById('rn-fileinput');
+const rnFolderInput = document.getElementById('rn-folderinput');
+
+rnDrop.addEventListener('dragover', e => { e.preventDefault(); rnDrop.classList.add('over'); });
+rnDrop.addEventListener('dragleave', e => { if (!rnDrop.contains(e.relatedTarget)) rnDrop.classList.remove('over'); });
+rnDrop.addEventListener('drop', e => {
+  e.preventDefault(); rnDrop.classList.remove('over');
+  handleDrop(e, addRnFiles);
+});
+rnInput.addEventListener('change', e => { addRnFiles(e.target.files); rnInput.value = ''; });
+rnFolderInput.addEventListener('change', e => { addRnFiles(e.target.files); rnFolderInput.value = ''; });
+
+function addRnFiles(fl) {
+  const now = Date.now();
+  let idx = 0;
+  for (const f of fl) {
+    if (!rnFiles.find(x => x.file.name === f.name && x.file.size === f.size)) {
+      rnFiles.push({ file: f, addedAt: now + idx });
+      idx++;
+    }
+  }
+  rnFiles.sort((a, b) => a.addedAt - b.addedAt);
+  renderRenamePreview();
+}
+
+function clearRenameFiles() {
+  rnFiles = [];
+  document.getElementById('rn-preview-card').style.display = 'none';
+  document.getElementById('rn-preview-list').innerHTML = '';
+}
+
+// Check if filename already has sequence prefix/suffix pattern: 0001_ or _0001
+function hasSeqPattern(name) {
+  const base = name.replace(/\.[^.]+$/, '');
+  // prefix: starts with 4 digits followed by _
+  if (/^\d{4}_/.test(base)) return true;
+  // suffix: ends with _4digits
+  if (/_\d{4}$/.test(base)) return true;
+  return false;
+}
+
+function buildRnNewName(origName, seqNum, pos) {
+  // Split name and extension
+  const dotIdx = origName.lastIndexOf('.');
+  const rawBase = dotIdx >= 0 ? origName.substring(0, dotIdx) : origName;
+  const ext = dotIdx >= 0 ? origName.substring(dotIdx) : '';
+  // Strip existing leading numbers/prefix pattern
+  const base = rawBase.replace(/^\d+[_\-\s]*/, '');
+  const num = pad4(seqNum);
+  if (pos === 'prefix') return `${num}_${base}${ext}`;
+  else return `${base}_${num}${ext}`;
+}
+
+function renderRenamePreview() {
+  const card = document.getElementById('rn-preview-card');
+  const listEl = document.getElementById('rn-preview-list');
+  const statsEl = document.getElementById('rn-stats-inline');
+  const exEl = document.getElementById('rn-ex');
+
+  // Update example
+  const s = parseInt(document.getElementById('rn-start').value) || 1;
+  const step = parseInt(document.getElementById('rn-step').value) || 1;
+  const pos = document.getElementById('rn-pos').value;
+  const ex0 = pos === 'prefix' ? `${pad4(s)}_filename.mp3` : `filename_${pad4(s)}.mp3`;
+  const ex1 = pos === 'prefix' ? `${pad4(s+step)}_filename.mp3` : `filename_${pad4(s+step)}.mp3`;
+  exEl.innerHTML = `ตัวอย่าง: <span>${ex0}</span>, <span>${ex1}</span>, …`;
+
+  if (!rnFiles.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  let changed = 0, skipped = 0, seqIdx = 0;
+
+  const rows = rnFiles.map((entry, i) => {
+    const f = entry.file;
+    const seqNum = s + seqIdx * step;
+    const newName = buildRnNewName(f.name, seqNum, pos);
+    const badge = `<span class="badge-new">ใหม่</span>`;
+    seqIdx++;
+    changed++;
+
+    return `<tr>
+      <td style="color:var(--color-text-tertiary,#aaa);font-size:12px;width:30px;text-align:center">${i+1}</td>
+      <td class="old-name">${escHtml(f.name)}</td>
+      <td style="color:#aaa;text-align:center">→</td>
+      <td class="new-name">${escHtml(newName)}${badge}</td>
+    </tr>`;
+  }).join('');
+
+  listEl.innerHTML = `<div style="max-height:300px;overflow-y:auto;border-radius:8px;border:0.5px solid var(--color-border-tertiary,#e5e5e5)"><table class="preview-table">
+    <thead style="position:sticky;top:0;z-index:1"><tr><th>#</th><th>ชื่อเดิม</th><th></th><th>ชื่อใหม่</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+
+  statsEl.textContent = `${rnFiles.length} ไฟล์ · เปลี่ยน ${changed} ไฟล์`;
+}
+
+function clampRnSeq(el) {
+  let v = parseInt(el.value) || 0;
+  if (v < 0) v = 0; if (v > 9999) v = 9999;
+  el.value = String(v).padStart(4, '0');
+}
+
+async function applyRename() {
+  if (!rnFiles.length) return;
+  const btn = document.getElementById('rn-apply-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังดาวน์โหลด...';
+
+  const s = parseInt(document.getElementById('rn-start').value) || 1;
+  const step = parseInt(document.getElementById('rn-step').value) || 1;
+  const pos = document.getElementById('rn-pos').value;
+
+  const useFS = ('showDirectoryPicker' in window);
+  let dirHandle = null;
+  if (useFS) {
+    try { dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+    catch(e) { btn.disabled = false; btn.textContent = '⬇ ดาวน์โหลดทั้งหมด (ชื่อใหม่)'; return; }
+  }
+
+  let seqIdx = 0;
+  for (let i = 0; i < rnFiles.length; i++) {
+    const f = rnFiles[i].file;
+    const seqNum = s + seqIdx * step;
+    const newName = buildRnNewName(f.name, seqNum, pos);
+    seqIdx++;
+
+    if (dirHandle) {
+      try {
+        const fh = await dirHandle.getFileHandle(newName, { create: true });
+        const w = await fh.createWritable();
+        await w.write(f);
+        await w.close();
+      } catch(e) { console.error(e); }
+    } else {
+      const url = URL.createObjectURL(f);
+      const a = document.createElement('a');
+      a.href = url; a.download = newName; a.click();
+      await new Promise(r => setTimeout(r, 200));
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⬇ ดาวน์โหลดทั้งหมด (ชื่อใหม่)';
+}
+
+// =====================================================================
+// UTIL
+// =====================================================================
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// =====================================================================
+// AUDIO PROCESSING: TOGGLE UI
+// =====================================================================
+function onLoudToggle() {
+  const on = document.getElementById('loud-toggle').checked;
+  document.getElementById('loud-panel').style.display = on ? 'block' : 'none';
+  if (on) refreshLoudFileList();
+}
+function onGainToggle() {
+  const on = document.getElementById('gain-toggle').checked;
+  const p = document.getElementById('gain-panel');
+  p.classList.toggle('visible', on);
+}
+function onNrToggle() {
+  const on = document.getElementById('nr-toggle').checked;
+  document.getElementById('nr-panel').style.display = on ? 'block' : 'none';
+}
+function onGainInput(el) {
+  const v = parseFloat(el.value);
+  document.getElementById('gain-display').textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + ' dB';
+  const pct = ((v + 18) / 36) * 100;
+  el.style.setProperty('--val', pct + '%');
+}
+function onNrInput(el) {
+  const v = parseInt(el.value);
+  document.getElementById('nr-display').textContent = (v >= 0 ? '+' : '−') + Math.abs(v) + ' dB';
+  const pct = ((v + 80) / 60) * 100;
+  el.style.setProperty('--val', pct + '%');
+}
+// Init slider track fill on load
+(function(){
+  const g = document.getElementById('gain-slider');
+  g.style.setProperty('--val', '50%');
+  const n = document.getElementById('nr-slider');
+  n.style.setProperty('--val', (((-40+80)/60)*100)+'%');
+})();
+
+function refreshLoudFileList() {
+  const sel = document.getElementById('lm-file-sel');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— เลือกไฟล์ที่ต้องการวัด —</option>';
+  files.forEach((entry, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = entry.file.name;
+    sel.appendChild(opt);
+  });
+  if (prev !== '' && files[parseInt(prev)]) sel.value = prev;
+}
+
+// =====================================================================
+// LOUDNESS METER
+// =====================================================================
+async function measureLoudness() {
+  const idx = parseInt(document.getElementById('lm-file-sel').value);
+  if (isNaN(idx) || !files[idx]) {
+    document.getElementById('lm-status').textContent = 'กรุณาเลือกไฟล์ก่อน';
+    return;
+  }
+  const entry = files[idx];
+  const statusEl = document.getElementById('lm-status');
+  statusEl.textContent = '⏳ กำลังวิเคราะห์...';
+  ['lm-peak','lm-rms','lm-lufs','lm-nfloor','lm-snr','lm-nratio'].forEach(id => {
+    document.getElementById(id).textContent = '…';
+    document.getElementById(id).className = 'lc-val';
+  });
+  document.getElementById('lufs-bar').style.width = '0';
+  document.getElementById('noise-bar').style.width = '0';
+
+  try {
+    const buf = await entry.file.arrayBuffer();
+    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuf = await tmpCtx.decodeAudioData(buf);
+    tmpCtx.close();
+
+    const sr = audioBuf.sampleRate;
+    const numCh = audioBuf.numberOfChannels;
+
+    // === LOUDNESS: collect across all channels ===
+    let peak = 0, sumSq = 0, totalSamples = 0;
+    const allData = [];
+    for (let ch = 0; ch < numCh; ch++) {
+      const data = audioBuf.getChannelData(ch);
+      allData.push(data);
+      for (let i = 0; i < data.length; i++) {
+        const abs = Math.abs(data[i]);
+        if (abs > peak) peak = abs;
+        sumSq += data[i] * data[i];
+        totalSamples++;
+      }
+    }
+    const peakDb = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
+    const rmsLinear = Math.sqrt(sumSq / totalSamples);
+    const rmsDb = rmsLinear > 0 ? 20 * Math.log10(rmsLinear) : -Infinity;
+    const lufs = isFinite(rmsDb) ? rmsDb - 0.691 : -Infinity;
+
+    // === NOISE ANALYSIS ===
+    // Strategy: split audio into short frames (~50ms), compute RMS per frame.
+    // The quietest 5% of frames = noise floor estimate.
+    // SNR = signal RMS − noise floor. Noise ratio = frames below threshold / total.
+    const frameSize = Math.round(sr * 0.05); // 50ms frames
+    const frameRms = [];
+    const ch0 = allData[0];
+    for (let start = 0; start + frameSize <= ch0.length; start += frameSize) {
+      let fSumSq = 0;
+      for (let j = start; j < start + frameSize; j++) {
+        fSumSq += ch0[j] * ch0[j];
+        if (numCh > 1) fSumSq += allData[1][j] * allData[1][j];
+      }
+      const fRms = Math.sqrt(fSumSq / (frameSize * numCh));
+      frameRms.push(fRms);
+    }
+    frameRms.sort((a, b) => a - b);
+
+    // Noise floor = median of lowest 5% of frames (min 3 frames)
+    const noiseFrameCount = Math.max(3, Math.floor(frameRms.length * 0.05));
+    let noiseSum = 0;
+    for (let i = 0; i < noiseFrameCount; i++) noiseSum += frameRms[i];
+    const noiseFloorLinear = noiseSum / noiseFrameCount;
+    const noiseFloorDb = noiseFloorLinear > 0 ? 20 * Math.log10(noiseFloorLinear) : -Infinity;
+
+    // SNR = RMS signal - noise floor (dB difference)
+    const snr = isFinite(rmsDb) && isFinite(noiseFloorDb) ? rmsDb - noiseFloorDb : null;
+
+    // Noise ratio: % of frames that are "noise level" (below signal mean - 20dB threshold)
+    const signalThreshLinear = rmsLinear * Math.pow(10, -20/20); // 20dB below signal RMS
+    const noiseFrames = frameRms.filter(v => v < signalThreshLinear).length;
+    const noiseRatioPct = frameRms.length > 0 ? (noiseFrames / frameRms.length * 100) : 0;
+
+    // === FORMAT & DISPLAY ===
+    const fmt = v => isFinite(v) ? (v >= 0 ? '+' : '') + v.toFixed(1) : '−∞';
+    const fmtPct = v => v.toFixed(1) + '%';
+
+    // Loudness
+    const peakEl = document.getElementById('lm-peak');
+    peakEl.textContent = fmt(peakDb);
+    peakEl.className = 'lc-val ' + (peakDb > -1 ? 'loud' : peakDb > -6 ? 'warn' : 'ok');
+
+    const rmsEl = document.getElementById('lm-rms');
+    rmsEl.textContent = fmt(rmsDb);
+    rmsEl.className = 'lc-val ' + (rmsDb > -6 ? 'loud' : rmsDb > -18 ? 'warn' : '');
+
+    const lufsEl = document.getElementById('lm-lufs');
+    lufsEl.textContent = fmt(lufs);
+    lufsEl.className = 'lc-val ' + (lufs > -9 ? 'loud' : lufs > -16 ? 'warn' : lufs < -23 ? '' : 'ok');
+
+    // Loudness bar
+    const barPct = Math.max(0, Math.min(100, ((lufs + 60) / 60) * 100));
+    const lufsBar = document.getElementById('lufs-bar');
+    lufsBar.style.width = barPct + '%';
+    lufsBar.style.background = lufs > -9 ? '#E24B4A' : lufs > -16 ? '#E8A020' : '#1D9E75';
+
+    // Noise Floor
+    const nflEl = document.getElementById('lm-nfloor');
+    nflEl.textContent = isFinite(noiseFloorDb) ? fmt(noiseFloorDb) : '—';
+    nflEl.className = 'lc-val ' + (noiseFloorDb > -40 ? 'loud' : noiseFloorDb > -60 ? 'warn' : 'ok');
+
+    // SNR
+    const snrEl = document.getElementById('lm-snr');
+    if (snr !== null) {
+      snrEl.textContent = snr.toFixed(1);
+      snrEl.className = 'lc-val ' + (snr < 20 ? 'loud' : snr < 40 ? 'warn' : 'ok');
+    } else {
+      snrEl.textContent = '—'; snrEl.className = 'lc-val';
+    }
+
+    // Noise ratio %
+    const nrEl = document.getElementById('lm-nratio');
+    nrEl.textContent = fmtPct(noiseRatioPct);
+    nrEl.className = 'lc-val ' + (noiseRatioPct > 40 ? 'loud' : noiseRatioPct > 20 ? 'warn' : 'ok');
+
+    // Noise bar (0–80% noise ratio → 0–100% bar)
+    const noiseBarPct = Math.min(100, (noiseRatioPct / 80) * 100);
+    const noiseBar = document.getElementById('noise-bar');
+    noiseBar.style.width = noiseBarPct + '%';
+    noiseBar.style.background = noiseRatioPct > 40 ? '#E24B4A' : noiseRatioPct > 20 ? '#E8A020' : '#1D9E75';
+
+    // Advice
+    const loudAdvice = lufs > -9 ? '⚠️ เสียงดังเกิน — แนะนำลด Gain'
+      : lufs > -16 ? '✅ ความดังเหมาะสมสำหรับสตรีมมิ่ง'
+      : lufs < -23 ? '🔇 เสียงเบาเกิน — ลองเพิ่ม Gain'
+      : '✅ ความดังอยู่ในระดับปกติ';
+
+    const noiseAdvice = snr !== null && snr < 20
+      ? `🔴 นอยส์สูงมาก (SNR ${snr.toFixed(1)} dB) — แนะนำเปิด Noise Reduction`
+      : snr !== null && snr < 40
+      ? `🟡 มีนอยส์บ้าง (SNR ${snr !== null ? snr.toFixed(1) : '—'} dB) — ลองเปิด Noise Reduction`
+      : `🟢 นอยส์ต่ำ (SNR ${snr !== null ? snr.toFixed(1) : '—'} dB) — เสียงสะอาด`;
+
+    statusEl.innerHTML = `${loudAdvice}<br>${noiseAdvice}`;
+
+  } catch(e) {
+    document.getElementById('lm-status').textContent = '❌ ไม่สามารถวิเคราะห์ไฟล์นี้ได้';
+    console.error(e);
+  }
+}
+
+// Hook: refresh loudness file list when files change
+const _origRenderList = renderList;
+renderList = function() {
+  _origRenderList();
+  const lt = document.getElementById('loud-toggle');
+  if (lt && lt.checked) refreshLoudFileList();
+};
+
+// =====================================================================
+// AUDIO PROCESSING: apply during encode
+// =====================================================================
+function getGainLinear() {
+  if (!document.getElementById('gain-toggle').checked) return 1.0;
+  const db = parseFloat(document.getElementById('gain-slider').value) || 0;
+  return Math.pow(10, db / 20);
+}
+
+function getNrThreshold() {
+  if (!document.getElementById('nr-toggle').checked) return null;
+  const db = parseInt(document.getElementById('nr-slider').value);
+  return Math.pow(10, db / 20); // linear threshold
+}
+
+function applyAudioProcessing(audioBuffer) {
+  const gain = getGainLinear();
+  const nrThresh = getNrThreshold();
+  if (gain === 1.0 && nrThresh === null) return audioBuffer; // nothing to do
+
+  const numCh = audioBuffer.numberOfChannels;
+  const len = audioBuffer.length;
+  const sr = audioBuffer.sampleRate;
+
+  // We'll work on raw Float32 and return a plain object compatible with encodeWithWorker
+  const channels = [];
+  for (let ch = 0; ch < numCh; ch++) {
+    const src = audioBuffer.getChannelData(ch);
+    const out = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
+      let s = src[i];
+      // Noise gate (spectral gate simplified: per-sample threshold)
+      if (nrThresh !== null && Math.abs(s) < nrThresh) s = 0;
+      // Gain
+      s *= gain;
+      // Hard clip guard
+      s = Math.max(-1, Math.min(1, s));
+      out[i] = s;
+    }
+    channels.push(out);
+  }
+
+  // Return a minimal AudioBuffer-like object
+  return {
+    duration: audioBuffer.duration,
+    sampleRate: sr,
+    numberOfChannels: numCh,
+    length: len,
+    getChannelData: (ch) => channels[ch]
+  };
+}
+
+// Async wrapper for applyAudioProcessing — ถ้ามี GPU ก็ใช้ GPU, ไม่งั้นใช้ CPU sync
+async function applyAudioProcessingAsync(audioBuffer) {
+  const gain = getGainLinear();
+  const nrThresh = getNrThreshold();
+
+  // ไม่มีอะไรต้องทำ
+  if (gain === 1.0 && nrThresh === null) return audioBuffer;
+
+  // ถ้ามี GPU และ WebGPU พร้อม ใช้ GPU compute shader (เร็วกว่า CPU มากสำหรับไฟล์ใหญ่)
+  if (gpuSupported && gpuDevice) {
+    try {
+      return await applyAudioProcessingGPU(audioBuffer, gain, nrThresh);
+    } catch(e) {
+      console.warn('GPU DSP failed, falling back to CPU:', e);
+    }
+  }
+
+  // CPU fallback
+  return applyAudioProcessing(audioBuffer);
+}
+
+async function applyAudioProcessingGPU(audioBuffer, gain, nrThresh) {
+  const numCh = audioBuffer.numberOfChannels;
+  const len = audioBuffer.length;
+  const sr = audioBuffer.sampleRate;
+  const channels = [];
+
+  for (let ch = 0; ch < numCh; ch++) {
+    const src = audioBuffer.getChannelData(ch);
+
+    // Upload to GPU
+    const gpuBuf = gpuDevice.createBuffer({
+      size: src.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+    });
+    gpuDevice.queue.writeBuffer(gpuBuf, 0, src);
+
+    const outBuf = gpuDevice.createBuffer({
+      size: src.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    });
+
+    const uniformBuf = gpuDevice.createBuffer({
+      size: 8,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    gpuDevice.queue.writeBuffer(uniformBuf, 0, new Float32Array([gain, nrThresh !== null ? nrThresh : 0.0]));
+
+    const shaderCode = `
+      @group(0) @binding(0) var<storage, read> input: array<f32>;
+      @group(0) @binding(1) var<storage, read_write> output: array<f32>;
+      struct Params { gain: f32, nrThresh: f32 }
+      @group(0) @binding(2) var<uniform> params: Params;
+      @compute @workgroup_size(256)
+      fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+        let i = gid.x;
+        if (i >= arrayLength(&input)) { return; }
+        var s = input[i];
+        if (params.nrThresh > 0.0 && abs(s) < params.nrThresh) { s = 0.0; }
+        s = s * params.gain;
+        s = clamp(s, -1.0, 1.0);
+        output[i] = s;
+      }
+    `;
+
+    const module = gpuDevice.createShaderModule({ code: shaderCode });
+    const pipeline = await gpuDevice.createComputePipelineAsync({
+      layout: 'auto',
+      compute: { module, entryPoint: 'main' },
+    });
+
+    const bindGroup = gpuDevice.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: gpuBuf } },
+        { binding: 1, resource: { buffer: outBuf } },
+        { binding: 2, resource: { buffer: uniformBuf } },
+      ],
+    });
+
+    const encoder = gpuDevice.createCommandEncoder();
+    const pass = encoder.beginComputePass();
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bindGroup);
+    pass.dispatchWorkgroups(Math.ceil(len / 256));
+    pass.end();
+    gpuDevice.queue.submit([encoder.finish()]);
+
+    // Read back
+    const readBuf = gpuDevice.createBuffer({
+      size: src.byteLength,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
+    const enc2 = gpuDevice.createCommandEncoder();
+    enc2.copyBufferToBuffer(outBuf, 0, readBuf, 0, src.byteLength);
+    gpuDevice.queue.submit([enc2.finish()]);
+    await readBuf.mapAsync(GPUMapMode.READ);
+    const result = new Float32Array(readBuf.getMappedRange().slice(0));
+    readBuf.unmap();
+
+    // Cleanup
+    gpuBuf.destroy(); outBuf.destroy(); uniformBuf.destroy(); readBuf.destroy();
+    channels.push(result);
+  }
+
+  return {
+    duration: audioBuffer.duration,
+    sampleRate: sr,
+    numberOfChannels: numCh,
+    length: len,
+    getChannelData: (ch) => channels[ch]
+  };
+}
+
+// Detect file:// protocol and show warning
+if (location.protocol === 'file:') {
+  document.getElementById('file-proto-warn').style.display = 'block';
+}
+
+// =====================================================================
+// CACHE ENGINE
+// =====================================================================
+const CACHE_DB_NAME = 'mp3cPro';
+const CACHE_DB_VER  = 1;
+const CACHE_STORE   = 'encodeCache';
+
+let cacheEnabled  = false;
+let cacheLoc      = 'idb';       // 'idb' | 'opfs'
+let cacheSizeMB   = 500;
+let _cacheDB      = null;        // IDBDatabase instance
+let _opfsRoot     = null;        // OPFS FileSystemDirectoryHandle
+
+// ---------- UI helpers ----------
+function onCacheToggle() {
+  cacheEnabled = document.getElementById('cache-enable').checked;
+  document.getElementById('cache-settings').style.display = cacheEnabled ? 'block' : 'none';
+  if (cacheEnabled) { initCacheBackend(); refreshCacheStats(); }
+}
+
+function setCacheLoc(loc) {
+  cacheLoc = loc;
+  document.getElementById('cl-idb').classList.toggle('active', loc === 'idb');
+  document.getElementById('cl-opfs').classList.toggle('active', loc === 'opfs');
+  const hints = {
+    idb:  'IndexedDB: รองรับทุก browser · เก็บได้นาน · เปิด file:// ก็ใช้ได้',
+    opfs: 'OPFS: เร็วกว่า IndexedDB ~3× · ต้องการ Chrome 102+ / Firefox 111+'
+  };
+  document.getElementById('cache-loc-hint').textContent = hints[loc];
+  initCacheBackend();
+  refreshCacheStats();
+}
+
+function onCacheSizeInput(el) {
+  cacheSizeMB = parseInt(el.value);
+  const v = cacheSizeMB >= 1000 ? (cacheSizeMB/1000).toFixed(1)+' GB' : cacheSizeMB+' MB';
+  document.getElementById('cache-size-val').textContent = v;
+  document.getElementById('cache-limit-lbl').textContent = 'จาก ' + v;
+  const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+  el.style.setProperty('--val', pct + '%');
+  // Evict if over new limit
+  evictIfNeeded();
+}
+
+// ---------- Init backend ----------
+async function initCacheBackend() {
+  if (cacheLoc === 'idb') {
+    if (_cacheDB) return; // already open
+    _cacheDB = await new Promise((res, rej) => {
+      const req = indexedDB.open(CACHE_DB_NAME, CACHE_DB_VER);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(CACHE_STORE)) {
+          const store = db.createObjectStore(CACHE_STORE, { keyPath: 'key' });
+          store.createIndex('ts', 'ts');
+          store.createIndex('size', 'size');
+        }
+      };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  } else {
+    // OPFS
+    try {
+      _opfsRoot = await navigator.storage.getDirectory();
+      _opfsRoot = await _opfsRoot.getDirectoryHandle('mp3cPro', { create: true });
+    } catch(e) {
+      console.warn('OPFS not available, falling back to IDB', e);
+      cacheLoc = 'idb';
+      setCacheLoc('idb');
+    }
+  }
+}
+
+// ---------- Cache key ----------
+// key = hash of: filename + filesize + mtime + bitrate + channels + gain + nr settings
+function buildCacheKey(file, kbps, channels) {
+  const gain  = document.getElementById('gain-toggle').checked
+    ? document.getElementById('gain-slider').value : '0';
+  const nr    = document.getElementById('nr-toggle').checked
+    ? document.getElementById('nr-slider').value : 'off';
+  const mtime = file.lastModified || 0;
+  const raw   = `${file.name}|${file.size}|${mtime}|${kbps}|${channels}|g${gain}|nr${nr}`;
+  // Simple djb2 hash (no crypto needed — collision risk is negligible for this use)
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) h = ((h << 5) + h) ^ raw.charCodeAt(i);
+  return 'mp3c_' + (h >>> 0).toString(36) + '_' + file.size.toString(36);
+}
+
+// ---------- Read from cache ----------
+async function cacheGet(key) {
+  if (!cacheEnabled) return null;
+  try {
+    if (cacheLoc === 'idb') {
+      if (!_cacheDB) await initCacheBackend();
+      return await new Promise((res, rej) => {
+        const tx  = _cacheDB.transaction(CACHE_STORE, 'readwrite');
+        const req = tx.objectStore(CACHE_STORE).get(key);
+        req.onsuccess = e => {
+          const rec = e.target.result;
+          if (!rec) { res(null); return; }
+          // Update LRU timestamp
+          rec.ts = Date.now();
+          tx.objectStore(CACHE_STORE).put(rec);
+          res(rec.mp3);
+        };
+        req.onerror = () => res(null);
+      });
+    } else {
+      // OPFS
+      if (!_opfsRoot) await initCacheBackend();
+      try {
+        const fh  = await _opfsRoot.getFileHandle(key + '.mp3');
+        const f   = await fh.getFile();
+        return new Uint8Array(await f.arrayBuffer());
+      } catch(e) { return null; }
+    }
+  } catch(e) { return null; }
+}
+
+// ---------- Write to cache ----------
+async function cachePut(key, mp3Uint8, fileSizeBytes) {
+  if (!cacheEnabled) return;
+  try {
+    // Evict first so we don't exceed limit
+    await evictIfNeeded(mp3Uint8.byteLength);
+
+    if (cacheLoc === 'idb') {
+      if (!_cacheDB) await initCacheBackend();
+      await new Promise((res, rej) => {
+        const tx  = _cacheDB.transaction(CACHE_STORE, 'readwrite');
+        tx.objectStore(CACHE_STORE).put({
+          key, mp3: mp3Uint8, size: mp3Uint8.byteLength,
+          ts: Date.now(), origSize: fileSizeBytes
+        });
+        tx.oncomplete = res;
+        tx.onerror    = () => res(); // non-fatal
+      });
+    } else {
+      if (!_opfsRoot) await initCacheBackend();
+      const fh = await _opfsRoot.getFileHandle(key + '.mp3', { create: true });
+      const w  = await fh.createWritable();
+      await w.write(mp3Uint8);
+      await w.close();
+      // Store metadata in IDB for size tracking (OPFS has no easy size query)
+      if (!_cacheDB) { cacheLoc = 'idb'; await initCacheBackend(); cacheLoc = 'opfs'; }
+      if (_cacheDB) {
+        const tx = _cacheDB.transaction(CACHE_STORE, 'readwrite');
+        tx.objectStore(CACHE_STORE).put({
+          key, mp3: null, size: mp3Uint8.byteLength,
+          ts: Date.now(), origSize: fileSizeBytes, opfs: true
+        });
+      }
+    }
+    refreshCacheStats();
+  } catch(e) { /* cache write failure is non-fatal */ }
+}
+
+// ---------- Evict LRU entries ----------
+async function evictIfNeeded(incomingBytes = 0) {
+  if (!cacheEnabled || cacheLoc !== 'idb' || !_cacheDB) return;
+  const limitBytes = cacheSizeMB * 1024 * 1024;
+  const entries = await new Promise(res => {
+    const tx  = _cacheDB.transaction(CACHE_STORE, 'readonly');
+    const all = [];
+    tx.objectStore(CACHE_STORE).openCursor().onsuccess = e => {
+      const cur = e.target.result;
+      if (cur) { all.push({ key: cur.value.key, size: cur.value.size, ts: cur.value.ts }); cur.continue(); }
+      else res(all);
+    };
+  });
+  let totalBytes = entries.reduce((s, e) => s + (e.size || 0), 0) + incomingBytes;
+  if (totalBytes <= limitBytes) return;
+  // Sort by LRU (oldest first)
+  entries.sort((a, b) => a.ts - b.ts);
+  const tx = _cacheDB.transaction(CACHE_STORE, 'readwrite');
+  const store = tx.objectStore(CACHE_STORE);
+  for (const entry of entries) {
+    if (totalBytes <= limitBytes) break;
+    store.delete(entry.key);
+    if (cacheLoc === 'opfs' && _opfsRoot) {
+      try { await _opfsRoot.removeEntry(entry.key + '.mp3'); } catch(e) {}
+    }
+    totalBytes -= (entry.size || 0);
+  }
+}
+
+// ---------- Stats ----------
+async function refreshCacheStats() {
+  if (!cacheEnabled) return;
+  const statEl = document.getElementById('cache-stats-txt');
+  const barEl  = document.getElementById('cache-usage-bar');
+  const usedEl = document.getElementById('cache-used-lbl');
+  const limEl  = document.getElementById('cache-limit-lbl');
+  statEl.textContent = 'กำลังคำนวณ...';
+  try {
+    let count = 0, totalBytes = 0;
+    if (cacheLoc === 'idb' || true) { // always use IDB for metadata
+      if (!_cacheDB) await initCacheBackend();
+      if (!_cacheDB) { statEl.textContent = 'ยังไม่ได้เปิด IndexedDB'; return; }
+      await new Promise(res => {
+        const tx = _cacheDB.transaction(CACHE_STORE, 'readonly');
+        tx.objectStore(CACHE_STORE).openCursor().onsuccess = e => {
+          const cur = e.target.result;
+          if (cur) { count++; totalBytes += cur.value.size || 0; cur.continue(); }
+          else res();
+        };
+      });
+    }
+    const limitBytes = cacheSizeMB * 1024 * 1024;
+    const pct = Math.min(100, (totalBytes / limitBytes) * 100);
+    barEl.style.width = pct + '%';
+    barEl.style.background = pct > 85 ? '#E24B4A' : pct > 60 ? '#E8A020' : '#1D9E75';
+    const usedStr  = totalBytes >= 1048576 ? (totalBytes/1048576).toFixed(1)+' MB' : (totalBytes/1024).toFixed(0)+' KB';
+    const limitStr = cacheSizeMB >= 1000 ? (cacheSizeMB/1000).toFixed(1)+' GB' : cacheSizeMB+' MB';
+    usedEl.textContent = usedStr + ' ใช้อยู่ · ' + count + ' ไฟล์';
+    limEl.textContent  = 'จาก ' + limitStr;
+    statEl.textContent = count === 0
+      ? 'แคชว่างเปล่า — จะถูกสร้างเมื่อบีบอัดครั้งแรก'
+      : `แคช ${count} ไฟล์ · ใช้ ${usedStr} (${pct.toFixed(1)}%)`;
+  } catch(e) {
+    statEl.textContent = '❌ อ่านข้อมูลแคชไม่ได้: ' + e.message;
+  }
+}
+
+async function clearCache() {
+  if (!confirm('ลบแคชทั้งหมด?')) return;
+  try {
+    if (_cacheDB) {
+      await new Promise(res => {
+        const tx = _cacheDB.transaction(CACHE_STORE, 'readwrite');
+        tx.objectStore(CACHE_STORE).clear();
+        tx.oncomplete = res;
+      });
+    }
+    if (_opfsRoot) {
+      for await (const name of _opfsRoot.keys()) {
+        try { await _opfsRoot.removeEntry(name); } catch(e) {}
+      }
+    }
+    refreshCacheStats();
+  } catch(e) { alert('ล้างแคชไม่สำเร็จ: ' + e.message); }
+}
+
+// Init slider track fill on load
+(function initCacheSlider(){
+  const el = document.getElementById('cache-size-slider');
+  const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+  el.style.setProperty('--val', pct + '%');
+})();
+
+// Detect file:// protocol and show warning
+if (location.protocol === 'file:') {
+  document.getElementById('file-proto-warn').style.display = 'block';
+}
+
+// Init
+renderRenamePreview();
+
+// Pre-fetch lamejs source in background so Worker is ready instantly on first compress
+// Pre-warm: fetch lamejs source so first compress is instant (uses browser cache after first load)
+getLameJsSrc().catch(() => {}); // silent — errors are shown when compress is actually triggered
+</script>
+</body>
+</html>
