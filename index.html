@@ -142,10 +142,41 @@ input[type=range].gslider::-moz-range-thumb{width:18px;height:18px;border-radius
 <div class="wrap">
   <h1>MP3 Compressor Pro</h1>
   <p class="sub">บีบอัดหลายไฟล์พร้อมกัน · เปลี่ยนชื่อไฟล์แบบกลุ่ม — ใช้งานได้เลยในเบราว์เซอร์</p>
-  <div id="file-proto-warn" style="display:none;background:#fff8e6;border:0.5px solid #fcd34d;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-bottom:1rem;line-height:1.7">
-    ⚠️ <b>เปิดผ่าน file:// — ฟีเจอร์บางส่วนอาจไม่ทำงาน</b><br>
-    หากบีบอัดไม่ได้ ให้เปิดผ่าน web server แทน:<br>
-    <code style="background:#fef3c7;padding:2px 6px;border-radius:4px">python -m http.server 8000</code> แล้วเปิด <code style="background:#fef3c7;padding:2px 6px;border-radius:4px">http://localhost:8000</code>
+  <!-- file:// modal -->
+  <div id="file-proto-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:16px;padding:1.75rem;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.18);font-size:14px;line-height:1.7">
+      <div style="font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:.5rem">🛠️ ต้องเปิดผ่าน Web Server</div>
+      <div style="color:#666;margin-bottom:1rem">
+        เบราว์เซอร์ไม่อนุญาตให้โหลด encoder (lamejs) จาก CDN เมื่อเปิดไฟล์ตรงๆ<br>
+        ต้องเปิดผ่าน web server ก่อน — <b>ทำได้ง่ายมาก ไม่ต้องติดตั้งอะไร</b>
+      </div>
+
+      <div style="background:#f5f5f7;border-radius:10px;padding:1rem;margin-bottom:1rem">
+        <div style="font-weight:600;color:#1a1a1a;margin-bottom:.5rem">วิธีที่ 1 — Python (แนะนำ)</div>
+        <div style="color:#666;font-size:13px;margin-bottom:.5rem">Python มาพร้อม Windows/Mac/Linux อยู่แล้ว ไม่ต้องติดตั้ง</div>
+        <div style="background:#1a1a1a;color:#e5e5e5;border-radius:8px;padding:.6rem .9rem;font-family:monospace;font-size:13px;margin-bottom:.5rem">
+          python -m http.server 8000
+        </div>
+        <div style="font-size:12px;color:#999">แล้วเปิด Chrome ไปที่ <b>http://localhost:8000</b></div>
+        <button onclick="downloadBat()" style="margin-top:.6rem;padding:8px 16px;background:#7F77DD;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;width:100%">
+          ⬇ ดาวน์โหลด start_server.bat (double-click เพื่อรัน)
+        </button>
+      </div>
+
+      <div style="background:#f5f5f7;border-radius:10px;padding:1rem;margin-bottom:1rem">
+        <div style="font-weight:600;color:#1a1a1a;margin-bottom:.5rem">วิธีที่ 2 — VS Code Live Server</div>
+        <div style="color:#666;font-size:13px">
+          1. เปิดโฟลเดอร์ที่มีไฟล์ .html ใน VS Code<br>
+          2. คลิกปุ่ม <b>Go Live</b> มุมล่างขวา<br>
+          3. เบราว์เซอร์จะเปิดอัตโนมัติ ✅
+        </div>
+      </div>
+
+      <button onclick="document.getElementById('file-proto-overlay').style.display='none'"
+        style="width:100%;padding:11px;background:transparent;border:1.5px solid #ccc;border-radius:10px;font-size:14px;cursor:pointer;color:#666">
+        ปิด (ลองใช้ดูก่อน บางฟีเจอร์อาจยังทำงานได้)
+      </button>
+    </div>
   </div>
 
   <!-- Main tab bar -->
@@ -423,13 +454,23 @@ input[type=range].gslider::-moz-range-thumb{width:18px;height:18px;border-radius
 
         <!-- Cache location -->
         <div style="margin-top:10px">
-          <div class="sublbl">ตำแหน่งแคช</div>
+          <div class="sublbl">ตำแหน่งเก็บแคช</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-            <button class="tab active" id="cl-idb" onclick="setCacheLoc('idb')">IndexedDB (แนะนำ)</button>
-            <button class="tab" id="cl-opfs" onclick="setCacheLoc('opfs')">OPFS (เร็วกว่า)</button>
+            <button class="tab active" id="cl-idb"  onclick="setCacheLoc('idb')">🗄 IndexedDB</button>
+            <button class="tab"        id="cl-opfs" onclick="setCacheLoc('opfs')">⚡ OPFS</button>
+            <button class="tab"        id="cl-folder" onclick="setCacheLoc('folder')">📁 โฟลเดอร์ของฉัน</button>
           </div>
+
+          <!-- Folder picker (แสดงเฉพาะตอน loc=folder) -->
+          <div id="cache-folder-row" style="display:none;margin-top:8px;gap:8px;align-items:center;flex-wrap:wrap">
+            <div id="cache-folder-name" style="flex:1;font-size:13px;color:var(--color-text-secondary,#666);background:var(--color-background-secondary,#f5f5f5);border-radius:8px;padding:8px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              ยังไม่ได้เลือกโฟลเดอร์
+            </div>
+            <button class="tab" onclick="pickCacheFolder()" style="white-space:nowrap">เลือกโฟลเดอร์…</button>
+          </div>
+
           <div id="cache-loc-hint" style="font-size:12px;color:var(--color-text-tertiary,#999);margin-top:6px;line-height:1.55">
-            IndexedDB: รองรับทุก browser · เก็บได้นาน · เปิด file:// ก็ใช้ได้
+            IndexedDB: รองรับทุก browser · เปิด file:// ก็ใช้ได้
           </div>
         </div>
 
@@ -1817,9 +1858,32 @@ async function applyAudioProcessingGPU(audioBuffer, gain, nrThresh) {
   };
 }
 
-// Detect file:// protocol and show warning
+// Detect file:// protocol and show modal
 if (location.protocol === 'file:') {
-  document.getElementById('file-proto-warn').style.display = 'block';
+  document.getElementById('file-proto-overlay').style.display = 'flex';
+}
+
+function downloadBat() {
+  const batContent = [
+    '@echo off',
+    'echo ==============================',
+    'echo   MP3 Compressor Pro Server',
+    'echo ==============================',
+    'echo.',
+    'cd /d "%~dp0"',
+    'echo เปิด server ที่ http://localhost:8000',
+    'echo ปิดหน้าต่างนี้เพื่อหยุด server',
+    'echo.',
+    'start "" "http://localhost:8000"',
+    'python -m http.server 8000',
+    'pause'
+  ].join('\r\n');
+  const blob = new Blob([batContent], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'start_server.bat';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // =====================================================================
@@ -1842,17 +1906,37 @@ function onCacheToggle() {
   if (cacheEnabled) { initCacheBackend(); refreshCacheStats(); }
 }
 
+let _cacheFolderHandle = null; // FileSystemDirectoryHandle จากผู้ใช้เลือก
+
 function setCacheLoc(loc) {
   cacheLoc = loc;
-  document.getElementById('cl-idb').classList.toggle('active', loc === 'idb');
-  document.getElementById('cl-opfs').classList.toggle('active', loc === 'opfs');
+  document.getElementById('cl-idb').classList.toggle('active',    loc === 'idb');
+  document.getElementById('cl-opfs').classList.toggle('active',   loc === 'opfs');
+  document.getElementById('cl-folder').classList.toggle('active', loc === 'folder');
+  document.getElementById('cache-folder-row').style.display = loc === 'folder' ? 'flex' : 'none';
   const hints = {
-    idb:  'IndexedDB: รองรับทุก browser · เก็บได้นาน · เปิด file:// ก็ใช้ได้',
-    opfs: 'OPFS: เร็วกว่า IndexedDB ~3× · ต้องการ Chrome 102+ / Firefox 111+'
+    idb:    'IndexedDB: รองรับทุก browser · เปิด file:// ก็ใช้ได้ · เก็บใน browser storage',
+    opfs:   'OPFS: เร็วกว่า IDB ~3× · ต้องการ Chrome 102+ / Firefox 111+ · เปิดผ่าน http:// เท่านั้น',
+    folder: 'โฟลเดอร์ที่เลือก: บันทึกไฟล์ .mp3 cache ลงโฟลเดอร์จริงในเครื่อง · ย้าย/ลบได้ตามใจ'
   };
-  document.getElementById('cache-loc-hint').textContent = hints[loc];
-  initCacheBackend();
-  refreshCacheStats();
+  document.getElementById('cache-loc-hint').textContent = hints[loc] || '';
+  if (loc !== 'folder') { initCacheBackend(); refreshCacheStats(); }
+}
+
+async function pickCacheFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    alert('เบราว์เซอร์นี้ไม่รองรับการเลือกโฟลเดอร์\nกรุณาใช้ Chrome 86+ หรือ Edge 86+');
+    return;
+  }
+  try {
+    _cacheFolderHandle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'mp3cCache' });
+    document.getElementById('cache-folder-name').textContent = '📁 ' + _cacheFolderHandle.name;
+    document.getElementById('cache-folder-name').style.color = '#1D9E75';
+    cacheLoc = 'folder';
+    refreshCacheStats();
+  } catch(e) {
+    if (e.name !== 'AbortError') alert('เลือกโฟลเดอร์ไม่สำเร็จ: ' + e.message);
+  }
 }
 
 function onCacheSizeInput(el) {
@@ -1917,57 +2001,75 @@ async function cacheGet(key) {
   try {
     if (cacheLoc === 'idb') {
       if (!_cacheDB) await initCacheBackend();
-      return await new Promise((res, rej) => {
+      return await new Promise((res) => {
         const tx  = _cacheDB.transaction(CACHE_STORE, 'readwrite');
         const req = tx.objectStore(CACHE_STORE).get(key);
         req.onsuccess = e => {
           const rec = e.target.result;
           if (!rec) { res(null); return; }
-          // Update LRU timestamp
-          rec.ts = Date.now();
+          rec.ts = Date.now(); // LRU update
           tx.objectStore(CACHE_STORE).put(rec);
           res(rec.mp3);
         };
         req.onerror = () => res(null);
       });
-    } else {
-      // OPFS
+    } else if (cacheLoc === 'opfs') {
       if (!_opfsRoot) await initCacheBackend();
       try {
-        const fh  = await _opfsRoot.getFileHandle(key + '.mp3');
-        const f   = await fh.getFile();
+        const fh = await _opfsRoot.getFileHandle(key + '.mp3');
+        const f  = await fh.getFile();
+        return new Uint8Array(await f.arrayBuffer());
+      } catch(e) { return null; }
+    } else if (cacheLoc === 'folder') {
+      if (!_cacheFolderHandle) return null;
+      try {
+        const fh = await _cacheFolderHandle.getFileHandle(key + '.mp3');
+        const f  = await fh.getFile();
         return new Uint8Array(await f.arrayBuffer());
       } catch(e) { return null; }
     }
   } catch(e) { return null; }
+  return null;
 }
 
 // ---------- Write to cache ----------
 async function cachePut(key, mp3Uint8, fileSizeBytes) {
   if (!cacheEnabled) return;
   try {
-    // Evict first so we don't exceed limit
+    if (cacheLoc === 'folder') {
+      // เขียนตรงลงโฟลเดอร์ที่ผู้ใช้เลือก — ไม่มี size limit (user ดูแลเอง)
+      if (!_cacheFolderHandle) return;
+      const fh = await _cacheFolderHandle.getFileHandle(key + '.mp3', { create: true });
+      const w  = await fh.createWritable();
+      await w.write(mp3Uint8);
+      await w.close();
+      refreshCacheStats();
+      return;
+    }
+
+    // Evict ก่อนถ้าเกิน limit (IDB / OPFS)
     await evictIfNeeded(mp3Uint8.byteLength);
 
     if (cacheLoc === 'idb') {
       if (!_cacheDB) await initCacheBackend();
-      await new Promise((res, rej) => {
-        const tx  = _cacheDB.transaction(CACHE_STORE, 'readwrite');
+      await new Promise((res) => {
+        const tx = _cacheDB.transaction(CACHE_STORE, 'readwrite');
         tx.objectStore(CACHE_STORE).put({
           key, mp3: mp3Uint8, size: mp3Uint8.byteLength,
           ts: Date.now(), origSize: fileSizeBytes
         });
         tx.oncomplete = res;
-        tx.onerror    = () => res(); // non-fatal
+        tx.onerror    = () => res();
       });
-    } else {
+    } else if (cacheLoc === 'opfs') {
       if (!_opfsRoot) await initCacheBackend();
       const fh = await _opfsRoot.getFileHandle(key + '.mp3', { create: true });
       const w  = await fh.createWritable();
       await w.write(mp3Uint8);
       await w.close();
-      // Store metadata in IDB for size tracking (OPFS has no easy size query)
-      if (!_cacheDB) { cacheLoc = 'idb'; await initCacheBackend(); cacheLoc = 'opfs'; }
+      // Track size in IDB สำหรับ eviction
+      const prevLoc = cacheLoc;
+      if (!_cacheDB) { cacheLoc = 'idb'; await initCacheBackend(); cacheLoc = prevLoc; }
       if (_cacheDB) {
         const tx = _cacheDB.transaction(CACHE_STORE, 'readwrite');
         tx.objectStore(CACHE_STORE).put({
@@ -1977,7 +2079,7 @@ async function cachePut(key, mp3Uint8, fileSizeBytes) {
       }
     }
     refreshCacheStats();
-  } catch(e) { /* cache write failure is non-fatal */ }
+  } catch(e) { /* non-fatal */ console.warn('cache write failed:', e); }
 }
 
 // ---------- Evict LRU entries ----------
@@ -2019,7 +2121,29 @@ async function refreshCacheStats() {
   statEl.textContent = 'กำลังคำนวณ...';
   try {
     let count = 0, totalBytes = 0;
-    if (cacheLoc === 'idb' || true) { // always use IDB for metadata
+    if (cacheLoc === 'folder') {
+      if (!_cacheFolderHandle) {
+        statEl.textContent = 'ยังไม่ได้เลือกโฟลเดอร์';
+        barEl.style.width = '0%'; usedEl.textContent = '—'; limEl.textContent = 'ไม่จำกัดขนาด';
+        return;
+      }
+      for await (const [name, handle] of _cacheFolderHandle.entries()) {
+        if (name.endsWith('.mp3')) {
+          count++;
+          try { const f = await handle.getFile(); totalBytes += f.size; } catch(e) {}
+        }
+      }
+      const usedStr = totalBytes >= 1048576 ? (totalBytes/1048576).toFixed(1)+' MB' : (totalBytes/1024).toFixed(0)+' KB';
+      usedEl.textContent = usedStr + ' · ' + count + ' ไฟล์';
+      limEl.textContent  = 'ไม่จำกัดขนาด';
+      barEl.style.width  = '0%';
+      statEl.textContent = count === 0
+        ? 'แคชว่างเปล่า (โฟลเดอร์: ' + _cacheFolderHandle.name + ')'
+        : `แคช ${count} ไฟล์ · ${usedStr} (📁 ${_cacheFolderHandle.name})`;
+      return;
+    }
+
+    if (cacheLoc === 'idb' || cacheLoc === 'opfs') {
       if (!_cacheDB) await initCacheBackend();
       if (!_cacheDB) { statEl.textContent = 'ยังไม่ได้เปิด IndexedDB'; return; }
       await new Promise(res => {
@@ -2048,18 +2172,28 @@ async function refreshCacheStats() {
 }
 
 async function clearCache() {
-  if (!confirm('ลบแคชทั้งหมด?')) return;
+  const loc = cacheLoc === 'folder' ? 'โฟลเดอร์ ' + (_cacheFolderHandle?.name || '') : cacheLoc.toUpperCase();
+  if (!confirm(`ลบแคชทั้งหมดใน ${loc}?`)) return;
   try {
-    if (_cacheDB) {
-      await new Promise(res => {
-        const tx = _cacheDB.transaction(CACHE_STORE, 'readwrite');
-        tx.objectStore(CACHE_STORE).clear();
-        tx.oncomplete = res;
-      });
-    }
-    if (_opfsRoot) {
-      for await (const name of _opfsRoot.keys()) {
-        try { await _opfsRoot.removeEntry(name); } catch(e) {}
+    if (cacheLoc === 'folder') {
+      if (!_cacheFolderHandle) return;
+      for await (const [name] of _cacheFolderHandle.entries()) {
+        if (name.endsWith('.mp3')) {
+          try { await _cacheFolderHandle.removeEntry(name); } catch(e) {}
+        }
+      }
+    } else {
+      if (_cacheDB) {
+        await new Promise(res => {
+          const tx = _cacheDB.transaction(CACHE_STORE, 'readwrite');
+          tx.objectStore(CACHE_STORE).clear();
+          tx.oncomplete = res;
+        });
+      }
+      if (_opfsRoot) {
+        for await (const name of _opfsRoot.keys()) {
+          try { await _opfsRoot.removeEntry(name); } catch(e) {}
+        }
       }
     }
     refreshCacheStats();
@@ -2073,9 +2207,32 @@ async function clearCache() {
   el.style.setProperty('--val', pct + '%');
 })();
 
-// Detect file:// protocol and show warning
+// Detect file:// protocol and show modal
 if (location.protocol === 'file:') {
-  document.getElementById('file-proto-warn').style.display = 'block';
+  document.getElementById('file-proto-overlay').style.display = 'flex';
+}
+
+function downloadBat() {
+  const batContent = [
+    '@echo off',
+    'echo ==============================',
+    'echo   MP3 Compressor Pro Server',
+    'echo ==============================',
+    'echo.',
+    'cd /d "%~dp0"',
+    'echo เปิด server ที่ http://localhost:8000',
+    'echo ปิดหน้าต่างนี้เพื่อหยุด server',
+    'echo.',
+    'start "" "http://localhost:8000"',
+    'python -m http.server 8000',
+    'pause'
+  ].join('\r\n');
+  const blob = new Blob([batContent], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'start_server.bat';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // Init
