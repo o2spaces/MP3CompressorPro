@@ -413,7 +413,7 @@ input[type=range].gslider::-moz-range-thumb{width:18px;height:18px;border-radius
 
       <!-- RAM warning -->
       <div id="ram-warn" style="display:none;margin-top:10px;background:#fff8e6;border:0.5px solid #fcd34d;border-radius:8px;padding:9px 13px;font-size:12px;color:#92400e">
-        ⚠️ <b>ระวัง RAM:</b> encode MP3 ใช้ RAM ~50–200 MB ต่อไฟล์ ตั้งค่าสูงเกินไปอาจทำให้ browser ช้า
+        ⚠️ <b>ระวัง RAM:</b> ไฟล์เสียงยาว (เช่น 1 ชั่วโมง) ใช้ RAM ~300–600 MB ต่อไฟล์ — หากเกิด error "Array buffer allocation failed" ให้ลดค่านี้เหลือ 1–2
       </div>
 
       <!-- Honest GPU section -->
@@ -807,6 +807,59 @@ function detectMp3SampleRate(bytes) {
   return null;
 }
 
+// ---------------------------------------------------------------
+// Helper: decode MP3 ที่ทนทานต่อ ID3/header พิเศษ
+// ลอง decode 3 วิธีตามลำดับ fallback
+// ---------------------------------------------------------------
+async function robustDecodeAudioData(originalBuffer, sampleRate) {
+  // สำคัญ: decodeAudioData() จะ detach (destroy) buffer ที่ส่งเข้าไป
+  // ดังนั้นต้อง slice() เพื่อ copy ก่อนส่งทุกครั้ง
+  // แต่ slice ทีละอัน ไม่ทำพร้อมกัน เพื่อประหยัด RAM
+
+  // หา ID3v2 offset ล่วงหน้า (ใช้ view เดิม ไม่ต้อง copy)
+  const view = new Uint8Array(originalBuffer);
+  let id3Offset = 0;
+  while (
+    id3Offset + 10 < view.length &&
+    view[id3Offset] === 0x49 && view[id3Offset+1] === 0x44 && view[id3Offset+2] === 0x33
+  ) {
+    const id3Size = ((view[id3Offset+6] & 0x7F) << 21) |
+                    ((view[id3Offset+7] & 0x7F) << 14) |
+                    ((view[id3Offset+8] & 0x7F) << 7)  |
+                     (view[id3Offset+9] & 0x7F);
+    const hasFooter = (view[id3Offset+5] & 0x10) !== 0;
+    id3Offset += 10 + id3Size + (hasFooter ? 10 : 0);
+  }
+
+  // รายการ decode strategies ที่จะลองตามลำดับ
+  const strategies = [
+    // วิธีที่ 1: full buffer + native SR
+    { sr: sampleRate, offset: 0 },
+    // วิธีที่ 2: ตัด ID3 header + native SR (ถ้ามี ID3)
+    ...(id3Offset > 0 ? [{ sr: sampleRate, offset: id3Offset }] : []),
+    // วิธีที่ 3: full buffer + SR 44100 fallback
+    ...(sampleRate !== 44100 ? [{ sr: 44100, offset: 0 }] : []),
+    // วิธีที่ 4: ตัด ID3 + SR 44100 (กรณีแย่สุด)
+    ...(id3Offset > 0 && sampleRate !== 44100 ? [{ sr: 44100, offset: id3Offset }] : []),
+  ];
+
+  let lastError;
+  for (const { sr, offset } of strategies) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: sr });
+    try {
+      // slice เฉพาะตอนจะส่งเข้า decode — ไม่ copy ล่วงหน้า ประหยัด RAM
+      const sliced = originalBuffer.slice(offset);
+      const buf = await ctx.decodeAudioData(sliced);
+      ctx.close().catch(()=>{});
+      return buf;
+    } catch(e) {
+      ctx.close().catch(()=>{});
+      lastError = e;
+    }
+  }
+  throw lastError;
+}
+
 function fmtDur(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
@@ -1012,21 +1065,21 @@ function onThreadsInput(el) {
   const pct = ((v - 1) / (max - 1)) * 100;
   el.style.setProperty('--val', pct + '%');
   // Show RAM warning if >= 4 parallel
-  document.getElementById('ram-warn').style.display = v >= 4 ? 'block' : 'none';
+  document.getElementById('ram-warn').style.display = v >= 3 ? 'block' : 'none';
 }
 
 // Detect CPU cores on load + GPU status
 (async function detectHardware() {
   const cores = navigator.hardwareConcurrency || 4;
   // Recommend: floor(cores/2) capped at 4 to be safe on RAM
-  const recommended = Math.min(4, Math.max(1, Math.floor(cores / 2)));
+  const recommended = Math.min(2, Math.max(1, Math.floor(cores / 4)));
   const slider = document.getElementById('cpu-threads');
   slider.value = recommended;
   document.getElementById('cpu-thread-val').textContent = recommended;
   const pct = ((recommended - 1) / (parseInt(slider.max) - 1)) * 100;
   slider.style.setProperty('--val', pct + '%');
   document.getElementById('cpu-cores-hint').textContent = `CPU ${cores} cores · แนะนำ ${recommended}`;
-  if (recommended >= 4) document.getElementById('ram-warn').style.display = 'block';
+  if (recommended >= 3) document.getElementById('ram-warn').style.display = 'block';
 
   // GPU detection — honest status only, no toggle (GPU can't encode MP3)
   const row = document.getElementById('gpu-status-row');
@@ -1256,12 +1309,11 @@ async function _doCompress(btn) {
       pst.textContent = '① decode...'; pb.style.width = '10%';
       const rawBuf = await f.arrayBuffer();
 
-      // 1a: decode ที่ native SR
+      // 1a: decode ที่ native SR — ใช้ robustDecodeAudioData ที่มี fallback หลายชั้น
+      // รองรับไฟล์ที่มี ID3v2 header ขนาดใหญ่ หรือ encoding พิเศษ
       const nativeSr = files[i].sr || detectMp3SampleRate(new Uint8Array(rawBuf)) || 44100;
-      const localCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: nativeSr });
-      const rawAudioBuf = await localCtx.decodeAudioData(rawBuf.slice(0));
+      const rawAudioBuf = await robustDecodeAudioData(rawBuf, nativeSr);
       const dur = rawAudioBuf.duration;
-      try { await localCtx.close(); } catch(e) {}
 
       // 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext — เฉพาะเมื่อ SR ไม่ใช่ 44100Hz
       // ถ้า native SR เป็น 44100Hz อยู่แล้ว ข้ามขั้นตอนนี้ได้เลย
@@ -1336,8 +1388,10 @@ async function _doCompress(btn) {
       // แสดงสาเหตุ error ให้เห็นชัดเจนใน UI
       const errMsg = err.message || String(err);
       let errLabel = '✕ ';
-      if (/decodeAudioData|decode|audioData/i.test(errMsg)) {
-        errLabel += 'decode ไม่ได้ — ไฟล์อาจเสียหายหรือไม่ใช่ MP3 จริง';
+      if (/array buffer allocation|allocation failed/i.test(errMsg)) {
+        errLabel += 'RAM ไม่พอ — ลดจำนวนไฟล์ที่บีบพร้อมกันเหลือ 1–2 ไฟล์';
+      } else if (/decodeAudioData|decode|audioData/i.test(errMsg)) {
+        errLabel += 'decode ไม่ได้ — ไฟล์อาจเสียหาย, DRM-protected, หรือไม่ใช่ MP3 จริง';
       } else if (/OfflineAudioContext|startRendering|resample/i.test(errMsg)) {
         errLabel += 'resample ล้มเหลว';
       } else if (/worker|lame/i.test(errMsg.toLowerCase())) {
