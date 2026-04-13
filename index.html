@@ -1092,31 +1092,9 @@ self.onmessage=function(e){
     let total=0; mp3Data.forEach(b=>total+=b.length);
     const out=new Uint8Array(total);
     let offset=0; mp3Data.forEach(b=>{out.set(b,offset);offset+=b.length;});
-    // Trim trailing MP3 frames to match original sample count exactly
-    const samplesNeeded=originalSamples||left.length;
-    const framesNeeded=Math.ceil(samplesNeeded/blockSize);
-    let trimmed=out;
-    try {
-      let pos=0,frameCount=0,trimPos=out.length;
-      while(pos+3<out.length){
-        if(out[pos]===0xFF&&(out[pos+1]&0xE0)===0xE0){
-          frameCount++;
-          if(frameCount>=framesNeeded+1){trimPos=pos;break;}
-          const bitrateIdx=(out[pos+2]>>4)&0xF;
-          const srIdx=(out[pos+2]>>2)&0x3;
-          const pad=(out[pos+2]>>1)&0x1;
-          const brTable=[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320];
-          const srTable=[44100,48000,32000];
-          const br=(bitrateIdx>0&&bitrateIdx<15)?brTable[bitrateIdx]*1000:128000;
-          const sr=(srIdx<3)?srTable[srIdx]:44100;
-          const fsize=Math.floor(144*br/sr)+pad;
-          if(fsize<1||fsize>2881){pos++;continue;}
-          pos+=fsize;
-        } else {pos++;}
-      }
-      if(trimPos<out.length) trimmed=out.slice(0,trimPos);
-    } catch(te){trimmed=out;}
-    self.postMessage({type:'done',mp3:trimmed},[trimmed.buffer]);
+    // ไม่ trim — OfflineAudioContext รับประกัน sample count ถูกต้องอยู่แล้ว
+    // การ trim frame อาจตัดเสียงปลายออกโดยไม่จำเป็น
+    self.postMessage({type:'done',mp3:out},[out.buffer]);
   } catch(err) {
     self.postMessage({type:'error',msg:err.message||String(err)});
   }
@@ -1288,26 +1266,48 @@ async function _doCompress(btn) {
         }
       }
 
-      // Step 1: Decode
+      // Step 1: Decode → OfflineAudioContext 2 ขั้นตอน รับประกัน sample rate ถูกต้อง 100%
+      // ขั้น 1a: decode ที่ native SR ของไฟล์เพื่อให้ได้ duration ที่ถูกต้อง
+      // ขั้น 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext (รับประกัน output SR เสมอ)
+      // เหตุผล: AudioContext live ไม่รับประกัน sampleRate ที่ขอเมื่อรัน parallel หลายตัว
+      //         browser อาจ fallback เป็น system default (เช่น 48000Hz บน Windows)
+      //         ทำให้ lamejs ได้รับ audio ที่ wrong sample rate แล้ว encode เป็น MPEG2 ออกมา
       pst.textContent = '① decode...'; pb.style.width = '10%';
       const rawBuf = await f.arrayBuffer();
-      // ตรวจ sample rate จริงจาก MP3 header เสมอ เพื่อ decode ด้วย context ที่ถูกต้อง
-      // สำคัญมาก: ถ้า sampleRate ของ AudioContext ≠ ของไฟล์จริง เบราว์เซอร์จะ resample
-      // และ audioBuf.sampleRate จะได้ค่า context ไม่ใช่ค่าจริงของไฟล์
-      const realSr = files[i].sr || detectMp3SampleRate(new Uint8Array(rawBuf)) || 44100;
-      const localCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: realSr });
-      const audioBuf = await localCtx.decodeAudioData(rawBuf.slice(0));
-      const dur = audioBuf.duration;
+
+      // 1a: decode ที่ native SR — ใช้ AudioContext ชั่วคราวเพื่อ decode เท่านั้น
+      const nativeSr = files[i].sr || detectMp3SampleRate(new Uint8Array(rawBuf)) || 44100;
+      const localCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: nativeSr });
+      const rawAudioBuf = await localCtx.decodeAudioData(rawBuf.slice(0));
+      const dur = rawAudioBuf.duration;
+      try { await localCtx.close(); } catch(e) {}
+
+      // 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext — รับประกัน output เป็น 44100Hz เสมอ
+      // lamejs รองรับเฉพาะ MPEG1 sample rates (32000, 44100, 48000) เท่านั้น
+      // ถ้าได้ 22050Hz (MPEG2) จะ encode ผิด ไฟล์จะสั้นกว่าจริงครึ่งนึง
+      pst.textContent = `① resample ${nativeSr}→44100Hz...`; pb.style.width = '15%';
+      const TARGET_SR = 44100;
+      const offlineCtx = new OfflineAudioContext(
+        rawAudioBuf.numberOfChannels,
+        Math.ceil(dur * TARGET_SR),
+        TARGET_SR
+      );
+      const offlineSrc = offlineCtx.createBufferSource();
+      offlineSrc.buffer = rawAudioBuf;
+      offlineSrc.connect(offlineCtx.destination);
+      offlineSrc.start(0);
+      const audioBuf = await offlineCtx.startRendering();
+      // audioBuf.sampleRate === 44100 รับประกัน 100%
+
       const origKbps = files[i].kbps || Math.round((f.size * 8) / (dur * 1000));
       const targetKbps = snapBitrate(getTargetBits(dur));
       // สร้าง cache key ด้วย duration และ kbps จริงหลัง decode (แม่นยำกว่า estimate)
       cacheKey = buildCacheKey(f, targetKbps, channels);
       // ถ้ายังไม่ได้ตรวจ cache (กรณีไม่มี metadata ล่วงหน้า) ให้ตรวจด้วย key จริง
       if (!knownDur) {
-        pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '12%';
+        pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '18%';
         const cached2 = await cacheGet(cacheKey);
         if (cached2) {
-          try { await localCtx.close(); } catch(e) {}
           pb.style.width = '95%';
           const outName = getOutName(f.name, i);
           if (dirHandle) {
@@ -1332,30 +1332,10 @@ async function _doCompress(btn) {
       const nrOn = document.getElementById('nr-toggle').checked;
       if (gainOn || nrOn) {
         pst.textContent = useGpuDsp ? '② DSP (GPU)...' : '② DSP (CPU)...';
-        pb.style.width = '20%';
+        pb.style.width = '22%';
       }
       let processedBuf = await applyAudioProcessingAsync(audioBuf);
-
-      // 🔑 Resample เป็น 44100 Hz ก่อน encode เสมอ
-      // lamejs รองรับเฉพาะ MPEG1 sample rates (32000, 44100, 48000)
-      // ถ้าไฟล์ต้นฉบับเป็น 22050 Hz (MPEG2) หรืออื่นๆ ต้อง resample ก่อน
-      // ไม่งั้น lamejs จะ encode ผิด และไฟล์จะสั้นกว่าจริงครึ่งนึง
-      const MPEG1_SR = [32000, 44100, 48000];
-      if (!MPEG1_SR.includes(processedBuf.sampleRate)) {
-        pst.textContent = `② resample ${processedBuf.sampleRate}→44100 Hz...`;
-        pb.style.width = '22%';
-        const targetSr = 44100;
-        const resampleCtx = new OfflineAudioContext(
-          processedBuf.numberOfChannels,
-          Math.ceil(processedBuf.duration * targetSr),
-          targetSr
-        );
-        const src = resampleCtx.createBufferSource();
-        src.buffer = processedBuf;
-        src.connect(resampleCtx.destination);
-        src.start(0);
-        processedBuf = await resampleCtx.startRendering();
-      }
+      // processedBuf.sampleRate === 44100 รับประกัน (ไม่ต้อง resample อีกแล้ว)
       pb.style.width = '25%';
 
       // Step 3: Encode MP3 — CPU only (Web Worker)
@@ -1364,9 +1344,6 @@ async function _doCompress(btn) {
         pb.style.width = (25 + pct * 0.65) + '%';
         pst.textContent = `③ encode CPU ${pct}% · ${origKbps}→${targetKbps}kbps`;
       });
-
-      // 🧹 ปิด local AudioContext ทันทีหลัง encode เสร็จ — คืน memory
-      try { await localCtx.close(); } catch(e) {}
 
       // 💾 บันทึกลง Cache (async, ไม่บล็อก)
       cachePut(cacheKey, mp3, f.size).catch(() => {});
