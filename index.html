@@ -1263,19 +1263,33 @@ async function _doCompress(btn) {
       const dur = rawAudioBuf.duration;
       try { await localCtx.close(); } catch(e) {}
 
-      // 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext รับประกัน 100%
-      pst.textContent = `① resample ${nativeSr}→44100Hz...`; pb.style.width = '15%';
+      // 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext — เฉพาะเมื่อ SR ไม่ใช่ 44100Hz
+      // ถ้า native SR เป็น 44100Hz อยู่แล้ว ข้ามขั้นตอนนี้ได้เลย
       const TARGET_SR = 44100;
-      const offlineCtx = new OfflineAudioContext(
-        rawAudioBuf.numberOfChannels,
-        Math.ceil(dur * TARGET_SR),
-        TARGET_SR
-      );
-      const offlineSrc = offlineCtx.createBufferSource();
-      offlineSrc.buffer = rawAudioBuf;
-      offlineSrc.connect(offlineCtx.destination);
-      offlineSrc.start(0);
-      const audioBuf = await offlineCtx.startRendering();
+      let audioBuf;
+      const MPEG1_SR = [32000, 44100, 48000];
+      if (rawAudioBuf.sampleRate === TARGET_SR) {
+        // SR ถูกต้องแล้ว — ใช้ rawAudioBuf โดยตรง ไม่ต้อง resample
+        audioBuf = rawAudioBuf;
+        pb.style.width = '18%';
+      } else if (!MPEG1_SR.includes(rawAudioBuf.sampleRate)) {
+        // SR เป็น MPEG2 (22050Hz ฯลฯ) — ต้อง resample ก่อน encode
+        pst.textContent = `① resample ${rawAudioBuf.sampleRate}→${TARGET_SR}Hz...`; pb.style.width = '15%';
+        const offlineCtx = new OfflineAudioContext(
+          rawAudioBuf.numberOfChannels,
+          Math.ceil(dur * TARGET_SR),
+          TARGET_SR
+        );
+        const offlineSrc = offlineCtx.createBufferSource();
+        offlineSrc.buffer = rawAudioBuf;
+        offlineSrc.connect(offlineCtx.destination);
+        offlineSrc.start(0);
+        audioBuf = await offlineCtx.startRendering();
+      } else {
+        // SR เป็น 32000 หรือ 48000 — lamejs รองรับได้ ไม่ต้อง resample
+        audioBuf = rawAudioBuf;
+        pb.style.width = '18%';
+      }
 
       const origKbps = files[i].kbps || Math.round((f.size * 8) / (dur * 1000));
       const targetKbps = snapBitrate(getTargetBits(dur));
@@ -1319,9 +1333,27 @@ async function _doCompress(btn) {
 
     } catch(err) {
       pb.style.width = '100%'; pb.classList.add('err');
-      pst.textContent = 'เกิดข้อผิดพลาด ✕'; pst.style.color = '#E24B4A';
+      // แสดงสาเหตุ error ให้เห็นชัดเจนใน UI
+      const errMsg = err.message || String(err);
+      let errLabel = '✕ ';
+      if (/decodeAudioData|decode|audioData/i.test(errMsg)) {
+        errLabel += 'decode ไม่ได้ — ไฟล์อาจเสียหายหรือไม่ใช่ MP3 จริง';
+      } else if (/OfflineAudioContext|startRendering|resample/i.test(errMsg)) {
+        errLabel += 'resample ล้มเหลว';
+      } else if (/worker|lame/i.test(errMsg.toLowerCase())) {
+        errLabel += 'encode ล้มเหลว: ' + errMsg;
+      } else if (/quota|storage/i.test(errMsg)) {
+        errLabel += 'พื้นที่เต็ม (storage quota)';
+      } else if (/network|fetch|cdn/i.test(errMsg.toLowerCase())) {
+        errLabel += 'โหลด encoder ไม่ได้ — ตรวจ internet';
+      } else {
+        errLabel += errMsg;
+      }
+      pst.textContent = errLabel;
+      pst.style.color = '#E24B4A';
+      pst.title = errMsg; // hover เพื่อดู full error
       results[i] = { error: true };
-      console.error(err);
+      console.error('[processOne #' + i + ']', err);
     }
   }
 
