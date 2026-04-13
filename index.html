@@ -1210,6 +1210,11 @@ async function _doCompress(btn) {
   const startTime = Date.now();
   let active = 0, fileIdx = 0, completed = 0;
 
+  // results[i] เก็บผลลัพธ์ของแต่ละไฟล์ตามลำดับ index เดิม
+  // { outName, data: Blob|File, label, labelColor } หรือ { error: true }
+  const results = new Array(files.length);
+
+  // processOne: encode อย่างเดียว — ไม่ save/download เอง คืน result กลับ
   async function processOne(i) {
     const f = files[i].file;
     const pst = document.getElementById(`pst-${i}`);
@@ -1225,15 +1230,7 @@ async function _doCompress(btn) {
         if (f.size <= targetBytes) {
           pb.style.width = '100%'; pb.classList.add('done');
           pst.textContent = `ข้ามแล้ว (เล็กกว่าเป้า) ✓`; pst.style.color = '#1D9E75';
-          const outName = getOutName(f.name, i);
-          if (dirHandle) {
-            const fh = await dirHandle.getFileHandle(outName, { create: true });
-            const w = await fh.createWritable(); await w.write(f); await w.close();
-          } else {
-            const url = URL.createObjectURL(f);
-            const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          }
+          results[i] = { outName: getOutName(f.name, i), data: f, label: `ข้ามแล้ว (เล็กกว่าเป้า) ✓`, labelColor: '#1D9E75' };
           return;
         }
       }
@@ -1247,44 +1244,26 @@ async function _doCompress(btn) {
         pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '5%';
         const cached = await cacheGet(cacheKey);
         if (cached) {
-          pb.style.width = '95%';
-          const outName = getOutName(f.name, i);
-          if (dirHandle) {
-            const fh = await dirHandle.getFileHandle(outName, { create: true });
-            const w  = await fh.createWritable();
-            await w.write(new Blob([cached], { type: 'audio/mpeg' }));
-            await w.close();
-          } else {
-            const url = URL.createObjectURL(new Blob([cached], { type: 'audio/mpeg' }));
-            const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          }
           pb.style.width = '100%'; pb.classList.add('done');
           pst.textContent = `⚡ แคช · ${fmtSize(cached.byteLength)} @ ${knownKbps}kbps ✓`;
           pst.style.color = '#7F77DD';
+          results[i] = { outName: getOutName(f.name, i), data: new Blob([cached], { type: 'audio/mpeg' }), label: pst.textContent, labelColor: '#7F77DD' };
           return;
         }
       }
 
       // Step 1: Decode → OfflineAudioContext 2 ขั้นตอน รับประกัน sample rate ถูกต้อง 100%
-      // ขั้น 1a: decode ที่ native SR ของไฟล์เพื่อให้ได้ duration ที่ถูกต้อง
-      // ขั้น 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext (รับประกัน output SR เสมอ)
-      // เหตุผล: AudioContext live ไม่รับประกัน sampleRate ที่ขอเมื่อรัน parallel หลายตัว
-      //         browser อาจ fallback เป็น system default (เช่น 48000Hz บน Windows)
-      //         ทำให้ lamejs ได้รับ audio ที่ wrong sample rate แล้ว encode เป็น MPEG2 ออกมา
       pst.textContent = '① decode...'; pb.style.width = '10%';
       const rawBuf = await f.arrayBuffer();
 
-      // 1a: decode ที่ native SR — ใช้ AudioContext ชั่วคราวเพื่อ decode เท่านั้น
+      // 1a: decode ที่ native SR
       const nativeSr = files[i].sr || detectMp3SampleRate(new Uint8Array(rawBuf)) || 44100;
       const localCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: nativeSr });
       const rawAudioBuf = await localCtx.decodeAudioData(rawBuf.slice(0));
       const dur = rawAudioBuf.duration;
       try { await localCtx.close(); } catch(e) {}
 
-      // 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext — รับประกัน output เป็น 44100Hz เสมอ
-      // lamejs รองรับเฉพาะ MPEG1 sample rates (32000, 44100, 48000) เท่านั้น
-      // ถ้าได้ 22050Hz (MPEG2) จะ encode ผิด ไฟล์จะสั้นกว่าจริงครึ่งนึง
+      // 1b: resample เป็น 44100Hz ด้วย OfflineAudioContext รับประกัน 100%
       pst.textContent = `① resample ${nativeSr}→44100Hz...`; pb.style.width = '15%';
       const TARGET_SR = 44100;
       const offlineCtx = new OfflineAudioContext(
@@ -1297,37 +1276,23 @@ async function _doCompress(btn) {
       offlineSrc.connect(offlineCtx.destination);
       offlineSrc.start(0);
       const audioBuf = await offlineCtx.startRendering();
-      // audioBuf.sampleRate === 44100 รับประกัน 100%
 
       const origKbps = files[i].kbps || Math.round((f.size * 8) / (dur * 1000));
       const targetKbps = snapBitrate(getTargetBits(dur));
-      // สร้าง cache key ด้วย duration และ kbps จริงหลัง decode (แม่นยำกว่า estimate)
       cacheKey = buildCacheKey(f, targetKbps, channels);
-      // ถ้ายังไม่ได้ตรวจ cache (กรณีไม่มี metadata ล่วงหน้า) ให้ตรวจด้วย key จริง
       if (!knownDur) {
         pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '18%';
         const cached2 = await cacheGet(cacheKey);
         if (cached2) {
-          pb.style.width = '95%';
-          const outName = getOutName(f.name, i);
-          if (dirHandle) {
-            const fh = await dirHandle.getFileHandle(outName, { create: true });
-            const w  = await fh.createWritable();
-            await w.write(new Blob([cached2], { type: 'audio/mpeg' }));
-            await w.close();
-          } else {
-            const url = URL.createObjectURL(new Blob([cached2], { type: 'audio/mpeg' }));
-            const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          }
           pb.style.width = '100%'; pb.classList.add('done');
           pst.textContent = `⚡ แคช · ${fmtSize(cached2.byteLength)} @ ${targetKbps}kbps ✓`;
           pst.style.color = '#7F77DD';
+          results[i] = { outName: getOutName(f.name, i), data: new Blob([cached2], { type: 'audio/mpeg' }), label: pst.textContent, labelColor: '#7F77DD' };
           return;
         }
       }
 
-      // Step 2: DSP (Gain + NR) — GPU if available, else CPU
+      // Step 2: DSP (Gain + NR)
       const gainOn = document.getElementById('gain-toggle').checked;
       const nrOn = document.getElementById('nr-toggle').checked;
       if (gainOn || nrOn) {
@@ -1335,43 +1300,32 @@ async function _doCompress(btn) {
         pb.style.width = '22%';
       }
       let processedBuf = await applyAudioProcessingAsync(audioBuf);
-      // processedBuf.sampleRate === 44100 รับประกัน (ไม่ต้อง resample อีกแล้ว)
       pb.style.width = '25%';
 
-      // Step 3: Encode MP3 — CPU only (Web Worker)
+      // Step 3: Encode MP3
       pst.textContent = `③ encode CPU · ${origKbps}→${targetKbps}kbps`;
       const mp3 = await encodeWithWorker(processedBuf, targetKbps, channels, pct => {
         pb.style.width = (25 + pct * 0.65) + '%';
         pst.textContent = `③ encode CPU ${pct}% · ${origKbps}→${targetKbps}kbps`;
       });
 
-      // 💾 บันทึกลง Cache (async, ไม่บล็อก)
+      // 💾 บันทึกลง Cache
       cachePut(cacheKey, mp3, f.size).catch(() => {});
 
-      // Step 4: Save
       pb.style.width = '95%';
-      const outName = getOutName(f.name, i);
-      if (dirHandle) {
-        const fh = await dirHandle.getFileHandle(outName, { create: true });
-        const w = await fh.createWritable();
-        await w.write(new Blob([mp3], { type: 'audio/mpeg' }));
-        await w.close();
-      } else {
-        const url = URL.createObjectURL(new Blob([mp3], { type: 'audio/mpeg' }));
-        const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
-      pb.style.width = '100%'; pb.classList.add('done');
       pst.textContent = `${fmtDur(dur)} · ${fmtSize(mp3.length)} @ ${targetKbps}kbps ✓`;
       pst.style.color = '#1D9E75';
+      results[i] = { outName: getOutName(f.name, i), data: new Blob([mp3], { type: 'audio/mpeg' }), label: pst.textContent, labelColor: '#1D9E75' };
+
     } catch(err) {
       pb.style.width = '100%'; pb.classList.add('err');
       pst.textContent = 'เกิดข้อผิดพลาด ✕'; pst.style.color = '#E24B4A';
+      results[i] = { error: true };
       console.error(err);
     }
   }
 
-  // Semaphore queue — maxParallel concurrent
+  // Semaphore queue — maxParallel concurrent (encode พร้อมกัน)
   await new Promise(resolve => {
     function next() {
       while (active < maxParallel && fileIdx < files.length) {
@@ -1389,6 +1343,27 @@ async function _doCompress(btn) {
     }
     next();
   });
+
+  // ✅ Save/Download ตามลำดับ index เดิมเสมอ — ไม่ขึ้นกับว่าไฟล์ไหนเสร็จก่อน
+  for (let i = 0; i < files.length; i++) {
+    const r = results[i];
+    if (!r || r.error) continue;
+    const pb = document.getElementById(`pb-${i}`);
+    if (dirHandle) {
+      try {
+        const fh = await dirHandle.getFileHandle(r.outName, { create: true });
+        const w = await fh.createWritable();
+        await w.write(r.data);
+        await w.close();
+      } catch(e) { console.error('Save error:', e); }
+    } else {
+      const url = URL.createObjectURL(r.data);
+      const a = document.createElement('a'); a.href = url; a.download = r.outName; a.click();
+      await new Promise(res => setTimeout(res, 150)); // หน่วงเล็กน้อยให้ browser จัดคิว download เรียงตามลำดับ
+      URL.revokeObjectURL(url);
+    }
+    pb.style.width = '100%'; pb.classList.add('done');
+  }
 
   const totalSec = ((Date.now() - startTime) / 1000).toFixed(1);
   perfTxt.innerHTML = `✅ เสร็จสิ้น <b>${files.length} ไฟล์</b> · ใช้เวลา <b>${totalSec}s</b>${gpuLabel}`;
