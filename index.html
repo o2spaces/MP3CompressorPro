@@ -719,7 +719,7 @@ function addFiles(fl) {
   for (const f of fl) {
     if (f.type === 'audio/mpeg' || f.name.endsWith('.mp3')) {
       if (!files.find(x => x.file.name === f.name && x.file.size === f.size)) {
-        const entry = { file: f, addedAt: now + idx, dur: null, kbps: null };
+        const entry = { file: f, addedAt: now + idx, dur: null, kbps: null, sr: null };
         files.push(entry);
         newEntries.push(entry);
         idx++;
@@ -756,7 +756,13 @@ async function loadMeta(entry) {
     // Read only a slice of the file for metadata (first 2MB is enough to get duration)
     const sliceSize = Math.min(entry.file.size, 2 * 1024 * 1024);
     const buf = await entry.file.slice(0, sliceSize).arrayBuffer();
-    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+
+    // อ่าน sample rate จริงจาก MP3 frame header ก่อน สร้าง AudioContext
+    // เพื่อให้ decoded.sampleRate ได้ค่าจริงของไฟล์ (ไม่ใช่ค่าของ AudioContext)
+    const realSr = detectMp3SampleRate(new Uint8Array(buf));
+    const ctxSr = realSr || 44100;
+
+    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctxSr });
     let decoded;
     try {
       decoded = await tmpCtx.decodeAudioData(buf);
@@ -776,10 +782,29 @@ async function loadMeta(entry) {
     }
     entry.dur = decoded.duration;
     entry.kbps = Math.round((entry.file.size * 8) / (decoded.duration * 1000));
+    entry.sr = realSr || decoded.sampleRate;
     await tmpCtx.close();
     renderList();
     updateStats();
   } catch(e) { /* skip files that can't be decoded */ }
+}
+
+// อ่าน sample rate จาก MP3 frame header โดยตรง (ไม่ต้องง AudioContext)
+function detectMp3SampleRate(bytes) {
+  const SR_MPEG1 = [44100, 48000, 32000];
+  const SR_MPEG2 = [22050, 24000, 16000];
+  const SR_MPEG25 = [11025, 12000, 8000];
+  for (let i = 0; i < Math.min(bytes.length - 3, 131072); i++) {
+    if (bytes[i] === 0xFF && (bytes[i+1] & 0xE0) === 0xE0) {
+      const ver = (bytes[i+1] >> 3) & 0x3;
+      const srIdx = (bytes[i+2] >> 2) & 0x3;
+      if (srIdx === 3) continue; // reserved
+      if (ver === 3) return SR_MPEG1[srIdx];
+      if (ver === 2) return SR_MPEG2[srIdx];
+      if (ver === 0) return SR_MPEG25[srIdx];
+    }
+  }
+  return null;
 }
 
 function fmtDur(sec) {
@@ -1041,19 +1066,23 @@ const LAME_CDN = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
 
 const WORKER_LOGIC = `
 self.onmessage=function(e){
-  const {left,right,numCh,sampleRate,kbps}=e.data;
+  const {left,right,numCh,sampleRate,kbps,originalSamples}=e.data;
   try {
     const encoder=new lamejs.Mp3Encoder(numCh,sampleRate,kbps);
     const blockSize=1152;
     const mp3Data=[];
     const toInt16=f=>Math.max(-32768,Math.min(32767,f<0?f*32768:f*32767));
-    const totalBlocks=Math.ceil(left.length/blockSize);
+    // Pad input to exact multiple of blockSize so flush adds no extra frames
+    const paddedLen=Math.ceil(left.length/blockSize)*blockSize;
+    const lPad=new Float32Array(paddedLen);
+    const rPad=new Float32Array(paddedLen);
+    lPad.set(left); rPad.set(right);
+    const totalBlocks=paddedLen/blockSize;
     for(let blockIdx=0;blockIdx<totalBlocks;blockIdx++){
       const i=blockIdx*blockSize;
-      const end=Math.min(i+blockSize,left.length);
-      const lBuf=new Int16Array(end-i);
-      const rBuf=new Int16Array(end-i);
-      for(let j=0;j<end-i;j++){lBuf[j]=toInt16(left[i+j]);rBuf[j]=toInt16(right[i+j]);}
+      const lBuf=new Int16Array(blockSize);
+      const rBuf=new Int16Array(blockSize);
+      for(let j=0;j<blockSize;j++){lBuf[j]=toInt16(lPad[i+j]);rBuf[j]=toInt16(rPad[i+j]);}
       const buf=numCh>1?encoder.encodeBuffer(lBuf,rBuf):encoder.encodeBuffer(lBuf);
       if(buf.length>0) mp3Data.push(buf);
       if(blockIdx%200===0) self.postMessage({type:'progress',pct:Math.round((blockIdx/totalBlocks)*100)});
@@ -1063,7 +1092,31 @@ self.onmessage=function(e){
     let total=0; mp3Data.forEach(b=>total+=b.length);
     const out=new Uint8Array(total);
     let offset=0; mp3Data.forEach(b=>{out.set(b,offset);offset+=b.length;});
-    self.postMessage({type:'done',mp3:out},[out.buffer]);
+    // Trim trailing MP3 frames to match original sample count exactly
+    const samplesNeeded=originalSamples||left.length;
+    const framesNeeded=Math.ceil(samplesNeeded/blockSize);
+    let trimmed=out;
+    try {
+      let pos=0,frameCount=0,trimPos=out.length;
+      while(pos+3<out.length){
+        if(out[pos]===0xFF&&(out[pos+1]&0xE0)===0xE0){
+          frameCount++;
+          if(frameCount>=framesNeeded+1){trimPos=pos;break;}
+          const bitrateIdx=(out[pos+2]>>4)&0xF;
+          const srIdx=(out[pos+2]>>2)&0x3;
+          const pad=(out[pos+2]>>1)&0x1;
+          const brTable=[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320];
+          const srTable=[44100,48000,32000];
+          const br=(bitrateIdx>0&&bitrateIdx<15)?brTable[bitrateIdx]*1000:128000;
+          const sr=(srIdx<3)?srTable[srIdx]:44100;
+          const fsize=Math.floor(144*br/sr)+pad;
+          if(fsize<1||fsize>2881){pos++;continue;}
+          pos+=fsize;
+        } else {pos++;}
+      }
+      if(trimPos<out.length) trimmed=out.slice(0,trimPos);
+    } catch(te){trimmed=out;}
+    self.postMessage({type:'done',mp3:trimmed},[trimmed.buffer]);
   } catch(err) {
     self.postMessage({type:'error',msg:err.message||String(err)});
   }
@@ -1117,7 +1170,7 @@ async function encodeWithWorker(audioBuffer, kbps, channels, onProgress) {
       else if (e.data.type === 'error') { worker.terminate(); reject(new Error(e.data.msg)); }
     };
     worker.onerror = err => { worker.terminate(); reject(new Error('Worker error: ' + (err.message || err))); };
-    worker.postMessage({ left, right, numCh, sampleRate: audioBuffer.sampleRate, kbps }, [left.buffer, right.buffer]);
+    worker.postMessage({ left, right, numCh, sampleRate: audioBuffer.sampleRate, kbps, originalSamples: audioBuffer.length }, [left.buffer, right.buffer]);
   });
 }
 
@@ -1207,44 +1260,72 @@ async function _doCompress(btn) {
         }
       }
 
-      // ── ตรวจ Cache ก่อน ──────────────────────────────────────────
-      // หา duration ก่อน (ใช้ metadata ที่โหลดไว้แล้ว หรือ estimate)
-      const estDur  = files[i].dur || ((f.size * 8) / (128 * 1000)); // estimate @128kbps
-      const estKbps = snapBitrate(getTargetBits(estDur));
-      const cacheKey = buildCacheKey(f, estKbps, channels);
-
-      pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '5%';
-      const cached = await cacheGet(cacheKey);
-      if (cached) {
-        // ✅ Cache HIT — ข้ามการ decode + encode ทั้งหมด
-        pb.style.width = '95%';
-        const outName = getOutName(f.name, i);
-        if (dirHandle) {
-          const fh = await dirHandle.getFileHandle(outName, { create: true });
-          const w  = await fh.createWritable();
-          await w.write(new Blob([cached], { type: 'audio/mpeg' }));
-          await w.close();
-        } else {
-          const url = URL.createObjectURL(new Blob([cached], { type: 'audio/mpeg' }));
-          const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
+      // ── ตรวจ Cache ก่อน (ใช้ duration จริงจาก metadata ถ้ามี) ────────────
+      const knownDur = files[i].dur;
+      let cacheKey = null;
+      if (knownDur) {
+        const knownKbps = snapBitrate(getTargetBits(knownDur));
+        cacheKey = buildCacheKey(f, knownKbps, channels);
+        pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '5%';
+        const cached = await cacheGet(cacheKey);
+        if (cached) {
+          pb.style.width = '95%';
+          const outName = getOutName(f.name, i);
+          if (dirHandle) {
+            const fh = await dirHandle.getFileHandle(outName, { create: true });
+            const w  = await fh.createWritable();
+            await w.write(new Blob([cached], { type: 'audio/mpeg' }));
+            await w.close();
+          } else {
+            const url = URL.createObjectURL(new Blob([cached], { type: 'audio/mpeg' }));
+            const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }
+          pb.style.width = '100%'; pb.classList.add('done');
+          pst.textContent = `⚡ แคช · ${fmtSize(cached.byteLength)} @ ${knownKbps}kbps ✓`;
+          pst.style.color = '#7F77DD';
+          return;
         }
-        pb.style.width = '100%'; pb.classList.add('done');
-        pst.textContent = `⚡ แคช · ${fmtSize(cached.byteLength)} @ ${estKbps}kbps ✓`;
-        pst.style.color = '#7F77DD';
-        return;
       }
 
       // Step 1: Decode
-      // ✅ AudioContext แยกต่างหากต่อไฟล์ — ไม่แชร์ global เพื่อป้องกันข้อมูลเสียหายเมื่อรัน parallel
       pst.textContent = '① decode...'; pb.style.width = '10%';
       const rawBuf = await f.arrayBuffer();
-      const localCtx = new (window.AudioContext || window.webkitAudioContext)();
-      // rawBuf.slice(0) เพื่อป้องกัน detach ของ ArrayBuffer เมื่อรัน parallel
+      // ตรวจ sample rate จริงจาก MP3 header เสมอ เพื่อ decode ด้วย context ที่ถูกต้อง
+      // สำคัญมาก: ถ้า sampleRate ของ AudioContext ≠ ของไฟล์จริง เบราว์เซอร์จะ resample
+      // และ audioBuf.sampleRate จะได้ค่า context ไม่ใช่ค่าจริงของไฟล์
+      const realSr = files[i].sr || detectMp3SampleRate(new Uint8Array(rawBuf)) || 44100;
+      const localCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: realSr });
       const audioBuf = await localCtx.decodeAudioData(rawBuf.slice(0));
       const dur = audioBuf.duration;
       const origKbps = files[i].kbps || Math.round((f.size * 8) / (dur * 1000));
       const targetKbps = snapBitrate(getTargetBits(dur));
+      // สร้าง cache key ด้วย duration และ kbps จริงหลัง decode (แม่นยำกว่า estimate)
+      cacheKey = buildCacheKey(f, targetKbps, channels);
+      // ถ้ายังไม่ได้ตรวจ cache (กรณีไม่มี metadata ล่วงหน้า) ให้ตรวจด้วย key จริง
+      if (!knownDur) {
+        pst.textContent = '🔍 ตรวจแคช...'; pb.style.width = '12%';
+        const cached2 = await cacheGet(cacheKey);
+        if (cached2) {
+          try { await localCtx.close(); } catch(e) {}
+          pb.style.width = '95%';
+          const outName = getOutName(f.name, i);
+          if (dirHandle) {
+            const fh = await dirHandle.getFileHandle(outName, { create: true });
+            const w  = await fh.createWritable();
+            await w.write(new Blob([cached2], { type: 'audio/mpeg' }));
+            await w.close();
+          } else {
+            const url = URL.createObjectURL(new Blob([cached2], { type: 'audio/mpeg' }));
+            const a = document.createElement('a'); a.href = url; a.download = outName; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }
+          pb.style.width = '100%'; pb.classList.add('done');
+          pst.textContent = `⚡ แคช · ${fmtSize(cached2.byteLength)} @ ${targetKbps}kbps ✓`;
+          pst.style.color = '#7F77DD';
+          return;
+        }
+      }
 
       // Step 2: DSP (Gain + NR) — GPU if available, else CPU
       const gainOn = document.getElementById('gain-toggle').checked;
@@ -1253,7 +1334,28 @@ async function _doCompress(btn) {
         pst.textContent = useGpuDsp ? '② DSP (GPU)...' : '② DSP (CPU)...';
         pb.style.width = '20%';
       }
-      const processedBuf = await applyAudioProcessingAsync(audioBuf);
+      let processedBuf = await applyAudioProcessingAsync(audioBuf);
+
+      // 🔑 Resample เป็น 44100 Hz ก่อน encode เสมอ
+      // lamejs รองรับเฉพาะ MPEG1 sample rates (32000, 44100, 48000)
+      // ถ้าไฟล์ต้นฉบับเป็น 22050 Hz (MPEG2) หรืออื่นๆ ต้อง resample ก่อน
+      // ไม่งั้น lamejs จะ encode ผิด และไฟล์จะสั้นกว่าจริงครึ่งนึง
+      const MPEG1_SR = [32000, 44100, 48000];
+      if (!MPEG1_SR.includes(processedBuf.sampleRate)) {
+        pst.textContent = `② resample ${processedBuf.sampleRate}→44100 Hz...`;
+        pb.style.width = '22%';
+        const targetSr = 44100;
+        const resampleCtx = new OfflineAudioContext(
+          processedBuf.numberOfChannels,
+          Math.ceil(processedBuf.duration * targetSr),
+          targetSr
+        );
+        const src = resampleCtx.createBufferSource();
+        src.buffer = processedBuf;
+        src.connect(resampleCtx.destination);
+        src.start(0);
+        processedBuf = await resampleCtx.startRendering();
+      }
       pb.style.width = '25%';
 
       // Step 3: Encode MP3 — CPU only (Web Worker)
@@ -1871,11 +1973,44 @@ function downloadBat() {
     'echo ==============================',
     'echo.',
     'cd /d "%~dp0"',
-    'echo เปิด server ที่ http://localhost:8000',
-    'echo ปิดหน้าต่างนี้เพื่อหยุด server',
+    '',
+    'REM Try python3 first',
+    'python3 --version >nul 2>&1',
+    'if %errorlevel% == 0 (',
+    '  echo Found Python3 - starting server...',
+    '  start "" "http://localhost:8000"',
+    '  python3 -m http.server 8000',
+    '  goto end',
+    ')',
+    '',
+    'REM Try python',
+    'python --version >nul 2>&1',
+    'if %errorlevel% == 0 (',
+    '  echo Found Python - starting server...',
+    '  start "" "http://localhost:8000"',
+    '  python -m http.server 8000',
+    '  goto end',
+    ')',
+    '',
+    'REM Try Node.js',
+    'node --version >nul 2>&1',
+    'if %errorlevel% == 0 (',
+    '  echo Found Node.js - starting http-server...',
+    '  start "" "http://localhost:8000"',
+    '  npx --yes http-server -p 8000 -c-1',
+    '  goto end',
+    ')',
+    '',
     'echo.',
-    'start "" "http://localhost:8000"',
-    'python -m http.server 8000',
+    'echo !! Python and Node.js not found !!',
+    'echo.',
+    'echo How to fix (choose one):',
+    'echo   1. Install Python from https://python.org/downloads',
+    'echo      (check "Add Python to PATH" during install)',
+    'echo   2. Install Node.js from https://nodejs.org',
+    'echo   3. Use VS Code + Live Server extension',
+    'echo.',
+    ':end',
     'pause'
   ].join('\r\n');
   const blob = new Blob([batContent], { type: 'text/plain' });
@@ -2220,11 +2355,44 @@ function downloadBat() {
     'echo ==============================',
     'echo.',
     'cd /d "%~dp0"',
-    'echo เปิด server ที่ http://localhost:8000',
-    'echo ปิดหน้าต่างนี้เพื่อหยุด server',
+    '',
+    'REM Try python3 first',
+    'python3 --version >nul 2>&1',
+    'if %errorlevel% == 0 (',
+    '  echo Found Python3 - starting server...',
+    '  start "" "http://localhost:8000"',
+    '  python3 -m http.server 8000',
+    '  goto end',
+    ')',
+    '',
+    'REM Try python',
+    'python --version >nul 2>&1',
+    'if %errorlevel% == 0 (',
+    '  echo Found Python - starting server...',
+    '  start "" "http://localhost:8000"',
+    '  python -m http.server 8000',
+    '  goto end',
+    ')',
+    '',
+    'REM Try Node.js',
+    'node --version >nul 2>&1',
+    'if %errorlevel% == 0 (',
+    '  echo Found Node.js - starting http-server...',
+    '  start "" "http://localhost:8000"',
+    '  npx --yes http-server -p 8000 -c-1',
+    '  goto end',
+    ')',
+    '',
     'echo.',
-    'start "" "http://localhost:8000"',
-    'python -m http.server 8000',
+    'echo !! Python and Node.js not found !!',
+    'echo.',
+    'echo How to fix (choose one):',
+    'echo   1. Install Python from https://python.org/downloads',
+    'echo      (check "Add Python to PATH" during install)',
+    'echo   2. Install Node.js from https://nodejs.org',
+    'echo   3. Use VS Code + Live Server extension',
+    'echo.',
+    ':end',
     'pause'
   ].join('\r\n');
   const blob = new Blob([batContent], { type: 'text/plain' });
